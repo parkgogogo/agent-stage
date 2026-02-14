@@ -6,11 +6,13 @@
   "exports": {
     "./shared": "./dist/shared/index.js",
     "./server": "./dist/server/index.js",
-    "./client": "./dist/client/index.js"
+    "./client": "./dist/client/index.js",
+    "./node": "./dist/node/index.js"
   },
   "scripts": {
-    "dev": "pnpm dev:server",
+    "dev": "concurrently -k -n server,typecheck \"pnpm dev:server\" \"pnpm dev:typecheck\"",
     "dev:server": "tsx watch src/server/index.ts",
+    "dev:typecheck": "tsc -p tsconfig.json --noEmit --watch",
     "build": "rimraf dist && tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
@@ -27,6 +29,7 @@
     "@types/node": "^22.13.5",
     "@types/ws": "^8.5.14",
     "@vitest/coverage-v8": "^4.0.18",
+    "concurrently": "^9.2.1",
     "rimraf": "^6.0.1",
     "tsx": "^4.19.2",
     "typescript": "^5.8.2",
