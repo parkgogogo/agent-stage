@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 
-import { createBridgeStore } from '../src/client/bridgeStore.js'
+import { createBridgeStore } from '../src/browser/bridgeStore.js'
 
 // We stub attachZustandHost so this test stays unit-level.
-vi.mock('../src/client/zustand.js', async () => {
+vi.mock('../src/browser/zustand.js', async () => {
   return {
     attachZustandHost: vi.fn(async (opts: any) => {
       return {
@@ -18,7 +18,7 @@ vi.mock('../src/client/zustand.js', async () => {
   }
 })
 
-const { attachZustandHost } = await import('../src/client/zustand.js')
+const { attachZustandHost } = await import('../src/browser/zustand.js')
 
 describe('createBridgeStore', () => {
   it('converts zod schemas to JSON schema and passes pageId/storeKey to attach', async () => {

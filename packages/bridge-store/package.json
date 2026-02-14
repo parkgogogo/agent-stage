@@ -6,7 +6,7 @@
   "exports": {
     "./shared": "./dist/shared/index.js",
     "./server": "./dist/server/index.js",
-    "./client": "./dist/client/index.js",
+    "./browser": "./dist/browser/index.js",
     "./node": "./dist/node/index.js"
   },
   "scripts": {

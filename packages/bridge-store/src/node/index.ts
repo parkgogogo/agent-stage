@@ -18,18 +18,15 @@ type RpcNotification = { jsonrpc: '2.0'; method: string; params?: any }
 
 type AnyMsg = RpcResponseOk | RpcResponseErr | RpcNotification
 
-export type BridgeSdkOptions = {
+export type BridgeNodeOptions = {
   url: string // ws://127.0.0.1:8787?token=...
 }
 
 /**
- * Bridge SDK (Node side).
- *
- * Naming note:
- * - Browser side attaches/hosts the zustand store (Store Host).
- * - Node side is the control SDK used by Agent/CLI.
+ * Bridge Node (Node side SDK).
+ * Used by Agent/CLI to talk to Bridge Server.
  */
-export class BridgeSdk {
+export class BridgeNode {
   private ws: WebSocket
   private nextId = 1
   private pending = new Map<JsonRpcId, { resolve: (v: any) => void; reject: (e: any) => void }>()
@@ -52,14 +49,14 @@ export class BridgeSdk {
     })
   }
 
-  static async connect(url: string | BridgeSdkOptions): Promise<BridgeSdk> {
+  static async connect(url: string | BridgeNodeOptions): Promise<BridgeNode> {
     const u = typeof url === 'string' ? url : url.url
     const ws = new WebSocket(u)
     await new Promise<void>((resolve, reject) => {
       ws.once('open', () => resolve())
       ws.once('error', (e) => reject(e))
     })
-    return new BridgeSdk(ws)
+    return new BridgeNode(ws)
   }
 
   close() {
@@ -171,5 +168,4 @@ export class BridgeSdk {
   }
 }
 
-/** @deprecated Use BridgeSdk */
-export const BridgeClient = BridgeSdk
+// (no deprecated aliases)
