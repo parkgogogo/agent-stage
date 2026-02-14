@@ -1,3 +1,5 @@
+export type PageId = string;
+export type StoreKey = string;
 export type StoreId = string;
 
 export type StageMeta = {

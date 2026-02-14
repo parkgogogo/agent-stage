@@ -2,7 +2,7 @@ import { createStore, type StoreApi } from "zustand/vanilla";
 import type { ZodTypeAny } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 
-import type { StageAction, StageMeta, StoreId } from "../shared/types.js";
+import type { PageId, StageAction, StageMeta, StoreId, StoreKey } from "../shared/types.js";
 import { attachZustandBridge } from "./zustand.js";
 
 export type ZodActionDef = {
@@ -22,8 +22,14 @@ export type ZodEventDef = {
 export type BridgeStoreOptions<TState> = {
   bridgeUrl: string;
 
-  // A human/semantic id is still useful (e.g. "subagents-monitor")
-  // storeId will be auto-generated if omitted.
+  // Semantic grouping for multiple stores under a page.
+  // If omitted, defaults to meta.id (or "page").
+  pageId?: PageId;
+
+  // Optional role name within a page (e.g. "main", "ui", "log").
+  storeKey?: StoreKey;
+
+  // Unique store id used for routing (random if omitted).
   storeId?: StoreId;
 
   // Meta can include Zod schemas; we'll convert them to JSON Schema for wire.
@@ -105,8 +111,12 @@ export async function createBridgeStore<TState>(opts: BridgeStoreOptions<TState>
     },
   };
 
+  const pageId: PageId = (opts.pageId ?? (wireMeta.id ?? "page")) as string;
+
   const attached = await attachZustandBridge({
     bridgeUrl: opts.bridgeUrl,
+    pageId,
+    storeKey: opts.storeKey,
     storeId: opts.storeId,
     meta: wireMeta,
     store,

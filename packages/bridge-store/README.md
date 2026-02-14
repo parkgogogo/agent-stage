@@ -13,10 +13,11 @@ pnpm -C packages/bridge-store dev
 
 ## Protocol (MVP)
 - Browser -> Server notifications:
-  - `host.register`
+  - `host.register` (includes `pageId` + optional `storeKey`)
   - `host.stateChanged`
 - Agent/Client -> Server requests:
   - `store.getMeta`, `store.getState`, `store.setState`, `store.dispatch`, `store.subscribe`
+  - `page.listStores`, `page.getStoresMeta`, `page.resolve`
 - Server -> Browser requests:
   - `client.setState`, `client.dispatch`
 - Server -> subscribers notifications:

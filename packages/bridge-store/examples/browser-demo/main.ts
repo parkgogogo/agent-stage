@@ -9,6 +9,8 @@ type State = {
 
 const { store, storeId } = await createBridgeStore<State>({
   bridgeUrl: 'ws://127.0.0.1:8787',
+  pageId: 'demo:counter',
+  storeKey: 'main',
   meta: {
     id: 'demo:counter',
     title: 'Counter Demo',

@@ -31,7 +31,23 @@ ws.on('message', (data) => {
 ws.on('open', async () => {
   console.log('connected')
 
-  const storeId = process.env.STORE_ID || 'demo:counter'
+  const pageId = process.env.PAGE_ID || 'demo:counter'
+  const storeKey = process.env.STORE_KEY || 'main'
+  let storeId = process.env.STORE_ID
+
+  if (!storeId) {
+    // Resolve storeId by pageId + storeKey
+    const res = await request('page.resolve', { pageId, storeKey }).catch((e) => ({ error: e }))
+    if (res?.storeId) storeId = res.storeId
+  }
+
+  if (!storeId) {
+    // Fallback: list first store under page
+    const listed = await request('page.listStores', { pageId }).catch((e) => ({ error: e }))
+    storeId = listed?.stores?.[0]?.storeId
+  }
+
+  console.log('using storeId:', storeId)
 
   await request('store.subscribe', { storeId })
   const cur = await request('store.getState', { storeId }).catch((e) => ({ error: e }))

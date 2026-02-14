@@ -1,10 +1,12 @@
 import type { StoreApi } from "zustand/vanilla";
-import type { StageAction, StageMeta, StoreId } from "../shared/types.js";
+import type { PageId, StageAction, StageMeta, StoreId, StoreKey } from "../shared/types.js";
 import type { JsonRpcRequest } from "../shared/protocol.js";
 import { WsRpcTransport } from "./transport.js";
 
 export type BridgeClientOptions<TState> = {
   bridgeUrl: string;
+  pageId?: PageId;
+  storeKey?: StoreKey;
   storeId?: StoreId;
   meta: StageMeta;
   store: StoreApi<TState>;
@@ -23,14 +25,19 @@ function randomId(): string {
   return Math.random().toString(16).slice(2) + Math.random().toString(16).slice(2);
 }
 
-function defaultStoreId(meta: StageMeta): StoreId {
-  const base = meta.id ?? "store";
-  return `${base}#${randomId().slice(0, 8)}`;
+function defaultPageId(meta: StageMeta): PageId {
+  return (meta.id ?? "page") as string;
+}
+
+function defaultStoreId(pageId: PageId): StoreId {
+  return `${pageId}#${randomId().slice(0, 8)}`;
 }
 
 export async function attachZustandBridge<TState>(opts: BridgeClientOptions<TState>) {
   const { bridgeUrl, meta, store } = opts;
-  const storeId = opts.storeId ?? defaultStoreId(meta);
+  const pageId = opts.pageId ?? defaultPageId(meta);
+  const storeId = opts.storeId ?? defaultStoreId(pageId);
+  const storeKey = opts.storeKey;
   const validateState = opts.validateState;
   const validateAction = opts.validateAction;
   const sourceName = opts.sourceName ?? "browser";
@@ -66,7 +73,7 @@ export async function attachZustandBridge<TState>(opts: BridgeClientOptions<TSta
 
   await rpc.ready();
 
-  rpc.notify("host.register", { storeId, meta, initialState: store.getState(), version });
+  rpc.notify("host.register", { storeId, pageId, storeKey, meta, initialState: store.getState(), version });
 
   const unsub = store.subscribe((state) => {
     version += 1;
@@ -74,6 +81,8 @@ export async function attachZustandBridge<TState>(opts: BridgeClientOptions<TSta
   });
 
   return {
+    pageId,
+    storeKey,
     storeId,
     rpc,
     close: () => {

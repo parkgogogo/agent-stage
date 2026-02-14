@@ -6,7 +6,7 @@ import {
   type JsonRpcId,
   type JsonRpcRequest,
 } from "../shared/protocol.js";
-import type { StageMeta, StoreId } from "../shared/types.js";
+import type { PageId, StageMeta, StoreId, StoreKey } from "../shared/types.js";
 import { BridgeRegistry } from "./registry.js";
 
 function send(ws: WebSocket, msg: unknown) {
@@ -33,15 +33,27 @@ export function broadcastStateChanged(reg: BridgeRegistry, storeId: StoreId, pay
 
 export function handleNotification(reg: BridgeRegistry, ws: WebSocket, method: string, params: unknown) {
   if (method === "host.register") {
-    const p = requireParams<{ storeId: string; meta?: StageMeta; initialState?: unknown; version?: number }>(params);
+    const p = requireParams<{
+      storeId: string;
+      pageId?: PageId;
+      storeKey?: StoreKey;
+      meta?: StageMeta;
+      initialState?: unknown;
+      version?: number;
+    }>(params);
     const storeId = p.storeId;
     if (!storeId || typeof storeId !== "string") throw new Error("storeId required");
+
+    const meta = (p.meta ?? null) as StageMeta | null;
+    const pageId: PageId = (p.pageId ?? meta?.id ?? "page") as string;
 
     // Mvp policy: last-wins
     reg.setHost(storeId, {
       ws,
       storeId,
-      meta: (p.meta ?? null) as StageMeta | null,
+      pageId,
+      storeKey: p.storeKey,
+      meta,
       state: p.initialState ?? null,
       version: typeof p.version === "number" ? p.version : 0,
     });
@@ -124,6 +136,51 @@ export function handleRequest(reg: BridgeRegistry, ws: WebSocket, req: JsonRpcRe
       }
 
       send(ws, jsonRpcResult(id, { ok: true }));
+      return;
+    }
+
+    if (method === "page.listStores") {
+      const p = requireParams<{ pageId: string }>(req.params);
+      const storeIds = Array.from(reg.pageToStores.get(p.pageId) ?? []);
+      const stores = storeIds
+        .map((storeId) => reg.getHost(storeId))
+        .filter(Boolean)
+        .map((h) => ({
+          storeId: h!.storeId,
+          pageId: h!.pageId,
+          storeKey: h!.storeKey ?? null,
+          version: h!.version,
+        }));
+      send(ws, jsonRpcResult(id, { stores }));
+      return;
+    }
+
+    if (method === "page.getStoresMeta") {
+      const p = requireParams<{ pageId: string }>(req.params);
+      const storeIds = Array.from(reg.pageToStores.get(p.pageId) ?? []);
+      const stores = storeIds
+        .map((storeId) => reg.getHost(storeId))
+        .filter(Boolean)
+        .map((h) => ({
+          storeId: h!.storeId,
+          pageId: h!.pageId,
+          storeKey: h!.storeKey ?? null,
+          meta: h!.meta,
+          version: h!.version,
+        }));
+      send(ws, jsonRpcResult(id, { stores }));
+      return;
+    }
+
+    if (method === "page.resolve") {
+      const p = requireParams<{ pageId: string; storeKey: string }>(req.params);
+      const map = reg.pageToStoreKeys.get(p.pageId);
+      const storeId = map?.get(p.storeKey as any);
+      if (!storeId) {
+        send(ws, jsonRpcError(id, 404, "Store not found", { pageId: p.pageId, storeKey: p.storeKey }));
+        return;
+      }
+      send(ws, jsonRpcResult(id, { storeId }));
       return;
     }
 
