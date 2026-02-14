@@ -1,0 +1,6 @@
+{
+  "pageId": "demo-counter",
+  "title": "Demo Counter",
+  "storeKey": "main",
+  "description": "A minimal counter demo wired to StoreBridge"
+}

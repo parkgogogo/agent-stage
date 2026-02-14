@@ -12,6 +12,7 @@
   "scripts": {
     "dev": "concurrently -k -n server,typecheck \"pnpm dev:server\" \"pnpm dev:typecheck\"",
     "dev:server": "tsx watch src/server/index.ts",
+    "start:server": "tsx src/server/index.ts",
     "dev:typecheck": "tsc -p tsconfig.json --noEmit --watch",
     "build": "rimraf dist && tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
