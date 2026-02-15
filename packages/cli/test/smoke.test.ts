@@ -8,7 +8,7 @@ const here = path.dirname(fileURLToPath(import.meta.url))
 const cliDir = path.resolve(here, '..')
 const builtCli = path.join(cliDir, 'dist', 'cli.js')
 
-describe('agentstage-cli (built)', () => {
+describe('cli (built)', () => {
   beforeAll(async () => {
     await execa('pnpm', ['-C', cliDir, '--silent', 'build'], {
       stdio: 'inherit',
