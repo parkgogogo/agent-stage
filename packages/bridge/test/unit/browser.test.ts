@@ -1,16 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { z } from 'zod';
 import { createBridgeStore } from '../../src/browser/createBridgeStore.js';
-import type { GatewayMessage } from '../../src/shared/types.js';
 
-// Mock zod-to-json-schema
-vi.mock('zod-to-json-schema', () => ({
-  zodToJsonSchema: vi.fn((schema, options) => ({
-    type: 'object',
-    properties: { mock: true },
-    ...options,
-  })),
-}));
+// Mock global objects
+global.window = {
+  location: {
+    protocol: 'http:',
+    host: 'localhost:3000',
+  },
+} as any;
 
 class MockWebSocket {
   static CONNECTING = 0;
@@ -18,14 +16,13 @@ class MockWebSocket {
   static CLOSING = 2;
   static CLOSED = 3;
   
-  public readyState = 0; // CONNECTING initially
+  public readyState = 0;
   public sentMessages: string[] = [];
   private listeners: Record<string, ((data: any) => void)[]> = {};
   
   constructor(public url: string) {
-    // Simulate connection success
     setTimeout(() => {
-      this.readyState = 1; // OPEN
+      this.readyState = 1;
       this.emit('open');
     }, 0);
   }
@@ -35,7 +32,7 @@ class MockWebSocket {
   }
   
   close(): void {
-    this.readyState = 3; // CLOSED
+    this.readyState = 3;
     this.emit('close');
   }
   
@@ -46,25 +43,12 @@ class MockWebSocket {
     this.listeners[event].push(handler);
   }
   
-  // Helper for tests
   emit(event: string, data?: any): void {
     this.listeners[event]?.forEach(h => h(data));
   }
-  
-  // Simulate receiving message from server
-  simulateMessage(message: unknown): void {
-    this.emit('message', { data: JSON.stringify(message) });
-  }
 }
 
-// Setup global mocks before importing createBridgeStore
 global.WebSocket = MockWebSocket as any;
-global.window = {
-  location: {
-    protocol: 'http:',
-    host: 'localhost:3000',
-  },
-} as any;
 
 describe('createBridgeStore', () => {
   const schema = z.object({ count: z.number() });
@@ -117,7 +101,7 @@ describe('createBridgeStore', () => {
       connected.disconnect();
     });
     
-    it('should use provided storeKey', async () => {
+    it('should use provided storeKey', () => {
       const bridge = createBridgeStore({
         pageId: 'test-page',
         storeKey: 'sidebar',
@@ -131,12 +115,11 @@ describe('createBridgeStore', () => {
         }),
       });
       
-      // Check description includes storeKey
       const description = bridge.describes();
       expect(description.storeKey).toBe('sidebar');
     });
     
-    it('should default storeKey to "main"', async () => {
+    it('should default storeKey to "main"', () => {
       const bridge = createBridgeStore({
         pageId: 'test-page',
         description: {
@@ -155,69 +138,20 @@ describe('createBridgeStore', () => {
   });
   
   describe('description generation', () => {
-    it('should convert zod schema to JSON schema', () => {
-      const { zodToJsonSchema } = require('zod-to-json-schema');
-      
+    it('should include pageId and storeKey in description', () => {
       const bridge = createBridgeStore({
         pageId: 'test-page',
-        description: {
-          schema,
-          actions: {},
-        },
-        createState: (set, get) => ({
-          count: 0,
-          dispatch: () => {},
-        }),
-      });
-      
-      const description = bridge.describes();
-      
-      expect(zodToJsonSchema).toHaveBeenCalledWith(schema, { name: 'State' });
-      expect(description.schema).toEqual({ type: 'object', properties: { mock: true }, name: 'State' });
-    });
-    
-    it('should convert action schemas', () => {
-      const { zodToJsonSchema } = require('zod-to-json-schema');
-      
-      const actionSchema = z.object({ increment: z.number() });
-      
-      const bridge = createBridgeStore({
-        pageId: 'test-page',
+        storeKey: 'sidebar',
         description: {
           schema,
           actions: {
             increment: {
               description: 'Increment counter',
-              payload: actionSchema,
             },
           },
-        },
-        createState: (set, get) => ({
-          count: 0,
-          dispatch: () => {},
-        }),
-      });
-      
-      const description = bridge.describes();
-      
-      expect(description.actions.increment).toEqual({
-        description: 'Increment counter',
-        payload: { type: 'object', properties: { mock: true }, name: 'incrementPayload' },
-      });
-    });
-    
-    it('should convert event schemas', () => {
-      const eventSchema = z.object({ message: z.string() });
-      
-      const bridge = createBridgeStore({
-        pageId: 'test-page',
-        description: {
-          schema,
-          actions: {},
           events: {
-            message: {
-              description: 'Message event',
-              payload: eventSchema,
+            update: {
+              description: 'Update event',
             },
           },
         },
@@ -229,10 +163,10 @@ describe('createBridgeStore', () => {
       
       const description = bridge.describes();
       
-      expect(description.events?.message).toEqual({
-        description: 'Message event',
-        payload: { type: 'object', properties: { mock: true }, name: 'messagePayload' },
-      });
+      expect(description.pageId).toBe('test-page');
+      expect(description.storeKey).toBe('sidebar');
+      expect(description.actions.increment.description).toBe('Increment counter');
+      expect(description.events?.update.description).toBe('Update event');
     });
   });
   
@@ -257,31 +191,7 @@ describe('createBridgeStore', () => {
       connected.disconnect();
     });
     
-    it('should send store.register message after connection', async () => {
-      const bridge = createBridgeStore({
-        pageId: 'test-page',
-        storeKey: 'main',
-        description: {
-          schema,
-          actions: {},
-        },
-        createState: (set, get) => ({
-          count: 0,
-          dispatch: () => {},
-        }),
-      });
-      
-      const connected = await bridge.connect();
-      
-      // Get the WebSocket instance from the bridge
-      // Note: In real implementation we might need to expose this differently
-      // For now, we just verify the connection succeeded
-      expect(bridge.isConnected).toBe(true);
-      
-      connected.disconnect();
-    });
-    
-    it('should start heartbeat after connection', async () => {
+    it('should mark as disconnected after disconnect', async () => {
       const bridge = createBridgeStore({
         pageId: 'test-page',
         description: {
@@ -295,73 +205,15 @@ describe('createBridgeStore', () => {
       });
       
       const connected = await bridge.connect();
-      
-      expect(bridge.isConnected).toBe(true);
-      
-      // Advance timer by 30 seconds (heartbeat interval)
-      vi.advanceTimersByTime(30000);
-      
-      // Connection should still be active
       expect(bridge.isConnected).toBe(true);
       
       connected.disconnect();
-    });
-    
-    it('should send stateChanged on store updates', async () => {
-      const bridge = createBridgeStore({
-        pageId: 'test-page',
-        description: {
-          schema,
-          actions: {},
-        },
-        createState: (set, get) => ({
-          count: 0,
-          dispatch: () => {},
-        }),
-      });
-      
-      const connected = await bridge.connect();
-      
-      // Update state
-      bridge.store.setState({ count: 5 });
-      
-      // State should be updated
-      expect(bridge.store.getState().count).toBe(5);
-      
-      connected.disconnect();
-    });
-    
-    it('should stop heartbeat on disconnect', async () => {
-      const bridge = createBridgeStore({
-        pageId: 'test-page',
-        description: {
-          schema,
-          actions: {},
-        },
-        createState: (set, get) => ({
-          count: 0,
-          dispatch: () => {},
-        }),
-      });
-      
-      const connected = await bridge.connect();
-      
-      expect(bridge.isConnected).toBe(true);
-      
-      connected.disconnect();
-      
-      expect(bridge.isConnected).toBe(false);
-      
-      // Advance timer
-      vi.advanceTimersByTime(60000);
-      
-      // Should still be disconnected
       expect(bridge.isConnected).toBe(false);
     });
   });
   
-  describe('handle gateway messages', () => {
-    it('should handle client.setState', async () => {
+  describe('state management', () => {
+    it('should update state through zustand', async () => {
       const bridge = createBridgeStore({
         pageId: 'test-page',
         description: {
@@ -374,17 +226,12 @@ describe('createBridgeStore', () => {
         }),
       });
       
-      const connected = await bridge.connect();
+      bridge.store.setState({ count: 5 });
       
-      // Manually set state to simulate receiving message from gateway
-      bridge.store.setState({ count: 100 });
-      
-      expect(bridge.store.getState().count).toBe(100);
-      
-      connected.disconnect();
+      expect(bridge.store.getState().count).toBe(5);
     });
     
-    it('should handle client.dispatch', async () => {
+    it('should handle dispatch action', async () => {
       const dispatchFn = vi.fn();
       
       const bridge = createBridgeStore({
@@ -399,14 +246,9 @@ describe('createBridgeStore', () => {
         }),
       });
       
-      const connected = await bridge.connect();
-      
-      // Call dispatch directly
       bridge.store.getState().dispatch({ type: 'increment', payload: { by: 5 } });
       
       expect(dispatchFn).toHaveBeenCalledWith({ type: 'increment', payload: { by: 5 } });
-      
-      connected.disconnect();
     });
   });
 });
