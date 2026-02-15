@@ -1,29 +1,29 @@
 {
   "name": "cli",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "bin": {
     "agentstage": "./dist/cli.js"
   },
   "scripts": {
-    "dev": "tsx src/cli.ts --help",
-    "dev:start": "tsx src/cli.ts start",
+    "dev": "tsx src/index.ts",
     "build": "rimraf dist && tsc -p tsconfig.build.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "commander": "^14.0.1",
-    "execa": "^9.6.0",
-    "pathe": "^2.0.3"
+    "@agentstage/bridge": "workspace:*",
+    "@clack/prompts": "^0.8.2",
+    "commander": "^12.1.0",
+    "consola": "^3.2.3",
+    "execa": "^9.3.1",
+    "pathe": "^1.1.2",
+    "picocolors": "^1.1.1"
   },
   "devDependencies": {
     "@types/node": "^22.13.5",
     "rimraf": "^6.0.1",
     "tsx": "^4.21.0",
-    "typescript": "^5.8.2",
-    "vitest": "^4.0.18"
+    "typescript": "^5.8.2"
   }
 }
