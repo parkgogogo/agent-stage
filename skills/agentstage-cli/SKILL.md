@@ -184,10 +184,28 @@ Current State:
 ### Execute Action
 
 ```bash
-agentstage exec counter increment '{"payload": 10}'
+# String payload (note the double quotes inside single quotes)
+agentstage exec hello-world setTextColor '"#ffff00"'
+
+# Number payload
+agentstage exec counter increment '10'
+
+# Boolean payload
+agentstage exec todo-list toggleItem '{"id": "item-1", "completed": true}'
+
+# Object payload
+agentstage exec form-page updateField '{"field": "name", "value": "John"}'
+
+# Array payload
+agentstage exec list-page setItems '["item1", "item2", "item3"]'
 ```
 
-Dispatches the `increment` action with payload `10`.
+**Payload Format Rules:**
+- Payload is parsed as JSON, so it must be valid JSON
+- Wrap the entire JSON in single quotes to prevent shell interpretation
+- For strings: use double quotes inside single quotes: `'"#ffff00"'`
+- For numbers/booleans/null: use directly: `'10'`, `'true'`, `'null'`
+- For objects/arrays: use standard JSON: `'{"key": "value"}'`, `'[1, 2, 3]'`
 
 ### Watch Real-time Changes
 
@@ -255,6 +273,8 @@ When implementing a page, follow this pattern:
 import { z } from 'zod';
 import { createFileRoute } from '@tanstack/react-router';
 import { createBridgeStore } from '@agentstage/bridge/browser';
+import { useStore } from 'zustand';
+import { useEffect } from 'react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 
@@ -308,9 +328,9 @@ export const Route = createFileRoute('/my-page')({
 
 function MyPage() {
   // Connect to the bridge when the component mounts
-  if (typeof window !== 'undefined') {
+  useEffect(() => {
     bridgeStore.connect().catch(console.error);
-  }
+  }, []);
 
   return (
     <div className="min-h-screen bg-background p-8">
