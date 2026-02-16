@@ -1,10 +1,10 @@
 {
-  "name": "agentstage",
+  "name": "agent-stage",
   "version": "0.2.0",
   "files": ["dist", "template"],
   "type": "module",
   "bin": {
-    "agentstage": "./dist/index.js"
+    "agent-stage": "./dist/index.js"
   },
   "scripts": {
     "dev": "tsx src/index.ts",
