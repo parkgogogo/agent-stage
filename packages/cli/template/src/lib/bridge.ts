@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { createBridgeStore } from 'agent-stage-bridge/browser'
 import { z } from 'zod'
 
@@ -37,6 +38,11 @@ export const bridge = createBridgeStore({
   }),
 })
 
+// Mount to window for debugging
+if (typeof window !== 'undefined') {
+  (window as any).bridge = bridge
+}
+
 // Hook for React components
 export function useBridgeStore<T>(
   bridgeInstance: typeof bridge,
@@ -53,5 +59,3 @@ export function useBridgeStore<T>(
 
   return value
 }
-
-import { useState, useEffect } from 'react'
