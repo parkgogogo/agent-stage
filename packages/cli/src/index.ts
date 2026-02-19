@@ -2,7 +2,7 @@
 import { Command } from 'commander';
 import consola from 'consola';
 
-// New command structure
+// CLI entry point - auto-publish test
 import { devCommand } from './commands/dev/index.js';
 import { pageCommand } from './commands/page/index.js';
 import { runCommand } from './commands/run/index.js';
