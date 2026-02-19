@@ -1,12 +1,17 @@
 {
   "name": "@agentstage/render",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "files": [
     "dist"
   ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -16,24 +21,29 @@
       "types": "./dist/bridge-state-provider.d.ts",
       "default": "./dist/bridge-state-provider.js"
     },
-    "./catalog": {
-      "types": "./dist/catalog.d.ts",
-      "default": "./dist/catalog.js"
+    "./shadcn": {
+      "types": "./dist/shadcn.d.ts",
+      "default": "./dist/shadcn.js"
     },
     "./json-to-tsx": {
       "types": "./dist/json-to-tsx.d.ts",
       "default": "./dist/json-to-tsx.js"
-    },
-    "./use-bridge-state": {
-      "types": "./dist/use-bridge-state.d.ts",
-      "default": "./dist/use-bridge-state.js"
     }
   },
   "peerDependencies": {
     "@json-render/core": "*",
     "@json-render/react": "*",
+    "@json-render/shadcn": "*",
     "react": ">=18",
     "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@json-render/core": "0.7.0",
+    "@json-render/react": "0.7.0",
+    "@json-render/shadcn": "^0.7.0",
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.2.0",
+    "typescript": "^5.0.0"
   },
   "publishConfig": {
     "access": "public"
