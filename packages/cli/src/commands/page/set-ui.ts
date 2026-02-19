@@ -1,28 +1,30 @@
 import { Command } from 'commander';
 import consola from 'consola';
 import c from 'picocolors';
-import { writeFile, readFile } from 'fs/promises';
+import { writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { join } from 'pathe';
-import { getWorkspaceDir, isInitialized } from '../../utils/paths.js';
+import { getWorkspaceDir, isInitialized, getPagesDir } from '../../utils/paths.js';
+import { FileStore } from 'agent-stage-bridge';
 
 export const pageSetUiCommand = new Command('set-ui')
-  .description('Set the UI spec for a page')
+  .description('Set the UI spec (and optionally state) for a page')
   .argument('<name>', 'Page name')
   .argument('[json]', 'UI spec as JSON string (omit to read from stdin)')
-  .action(async (name, jsonStr) => {
+  .option('-s, --state <json>', 'Initial state as JSON string')
+  .action(async (name, jsonStr, options) => {
     if (!isInitialized()) {
       consola.error('Project not initialized. Please run `agentstage init` first.');
       process.exit(1);
     }
 
-    // 读取 JSON
+    // 读取 UI JSON
     let uiSpec: unknown;
     if (jsonStr) {
       try {
         uiSpec = JSON.parse(jsonStr);
       } catch {
-        consola.error('Invalid JSON provided');
+        consola.error('Invalid UI JSON provided');
         process.exit(1);
       }
     } else {
@@ -33,7 +35,7 @@ export const pageSetUiCommand = new Command('set-ui')
       }
       const input = Buffer.concat(chunks).toString();
       if (!input.trim()) {
-        consola.error('No JSON provided. Use: echo \'{...}\' | agentstage page set-ui <name> --stdin');
+        consola.error('No JSON provided. Use: echo \'{...}\' | agentstage page set-ui <name>');
         process.exit(1);
       }
       try {
@@ -44,27 +46,52 @@ export const pageSetUiCommand = new Command('set-ui')
       }
     }
 
-    // 验证基本结构
+    // 验证 UI 结构
     if (!uiSpec || typeof uiSpec !== 'object' || !('root' in uiSpec) || !('elements' in uiSpec)) {
       consola.error('Invalid UI spec. Must have "root" and "elements" fields');
       process.exit(1);
     }
 
     const workspaceDir = await getWorkspaceDir();
-    const uiFile = join(workspaceDir, 'src', 'pages', name, 'ui.json');
+    const pageDir = join(workspaceDir, 'src', 'pages', name);
+    const uiFile = join(pageDir, 'ui.json');
 
     // 检查页面是否存在
-    if (!existsSync(join(workspaceDir, 'src', 'pages', name))) {
+    if (!existsSync(pageDir)) {
       consola.error(`Page "${name}" not found. Create it first with: agentstage page add ${name}`);
       process.exit(1);
     }
 
     try {
+      // 写入 UI
       await writeFile(uiFile, JSON.stringify(uiSpec, null, 2));
       consola.success(`UI spec updated for page "${name}"`);
-      console.log(`  File: ${c.gray(`src/pages/${name}/ui.json`)}`);
+      console.log(`  UI: ${c.gray(`src/pages/${name}/ui.json`)}`);
+
+      // 如果提供了 state，同时写入
+      if (options.state) {
+        let state: unknown;
+        try {
+          state = JSON.parse(options.state);
+        } catch {
+          consola.error('Invalid state JSON provided');
+          process.exit(1);
+        }
+
+        const pagesDir = await getPagesDir();
+        const fileStore = new FileStore({ pagesDir });
+
+        const saved = await fileStore.save(name, {
+          state,
+          version: 0,
+          updatedAt: new Date().toISOString(),
+          pageId: name,
+        });
+
+        console.log(`  State: ${c.gray(`src/pages/${name}/store.json`)} (v${saved.version})`);
+      }
     } catch (error: any) {
-      consola.error('Failed to write UI spec:', error.message);
+      consola.error('Failed to write:', error.message);
       process.exit(1);
     }
   });
