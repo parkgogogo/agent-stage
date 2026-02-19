@@ -8,7 +8,7 @@ export const devStatusCommand = new Command('status')
   .description('Check the Agentstage Runtime status')
   .action(async () => {
     if (!isInitialized()) {
-      consola.error('Project not initialized. Please run `agentstage dev init` first.');
+      consola.error('Project not initialized. Please run `agentstage init` first.');
       process.exit(1);
     }
 

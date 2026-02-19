@@ -7,11 +7,22 @@ import { join } from 'pathe';
 import { getWorkspaceDir, isInitialized, readRuntimeConfig, getPagesDir } from '../../utils/paths.js';
 import { FileStore } from 'agent-stage-bridge';
 
+// 从 stdin 读取数据
+async function readStdin(): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of process.stdin) {
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks).toString('utf-8');
+}
+
 export const pageAddCommand = new Command('add')
   .description('Add a new page with json-render UI')
   .argument('<name>', 'Page name (e.g., counter, about)')
-  .option('-u, --ui <json>', 'UI spec as JSON string')
-  .option('-s, --state <json>', 'Initial state as JSON string')
+  .option('-u, --ui <json>', 'UI spec as JSON string (or use --ui-stdin)')
+  .option('--ui-stdin', 'Read UI spec from stdin')
+  .option('-s, --state <json>', 'Initial state as JSON string (or use --state-stdin)')
+  .option('--state-stdin', 'Read state from stdin')
   .action(async (name, options) => {
     // 检查是否已初始化
     if (!isInitialized()) {
@@ -46,7 +57,16 @@ export const pageAddCommand = new Command('add')
 
       // 处理 UI
       let uiContent: Record<string, unknown>;
-      if (options.ui) {
+      if (options.uiStdin) {
+        // 从 stdin 读取 UI
+        const input = await readStdin();
+        try {
+          uiContent = JSON.parse(input);
+        } catch {
+          consola.error('Invalid UI JSON from stdin');
+          process.exit(1);
+        }
+      } else if (options.ui) {
         try {
           uiContent = JSON.parse(options.ui);
         } catch {
@@ -60,9 +80,22 @@ export const pageAddCommand = new Command('add')
 
       // 处理 State
       let stateContent: Record<string, unknown>;
-      if (options.state) {
+      let hasCustomState = false;
+      
+      if (options.stateStdin) {
+        // 从 stdin 读取 state
+        const input = await readStdin();
+        try {
+          stateContent = { state: JSON.parse(input) };
+          hasCustomState = true;
+        } catch {
+          consola.error('Invalid state JSON from stdin');
+          process.exit(1);
+        }
+      } else if (options.state) {
         try {
           stateContent = { state: JSON.parse(options.state) };
+          hasCustomState = true;
         } catch {
           consola.error('Invalid state JSON provided');
           process.exit(1);
@@ -71,8 +104,8 @@ export const pageAddCommand = new Command('add')
         stateContent = generateDefaultState(name);
       }
 
-      if (options.state) {
-        // 使用 --state 参数，直接写入
+      if (hasCustomState) {
+        // 使用自定义 state，直接写入
         const pagesDirPath = await getPagesDir();
         const fileStore = new FileStore({ pagesDir: pagesDirPath });
         await fileStore.save(name, {

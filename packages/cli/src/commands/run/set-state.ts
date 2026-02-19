@@ -14,7 +14,7 @@ export const runSetStateCommand = new Command('set-state')
   .option('--wait [timeoutMs]', 'Wait for browser ACK when using --live')
   .action(async (pageId, jsonStr, options) => {
     if (!isInitialized()) {
-      consola.error('Project not initialized. Please run `agentstage dev init` first.');
+      consola.error('Project not initialized. Please run `agentstage init` first.');
       process.exit(1);
     }
 

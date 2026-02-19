@@ -3,7 +3,7 @@ import consola from 'consola';
 import c from 'picocolors';
 import { readdir, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
-import { join } from 'pathe';
+import { join, resolve, isAbsolute } from 'pathe';
 import { mkdir } from 'fs/promises';
 import { getWorkspaceDir, isInitialized, readRuntimeConfig } from '../../utils/paths.js';
 
@@ -24,15 +24,28 @@ interface PageManifest {
 
 export const pageManifestCommand = new Command('manifest')
   .description('Generate pages manifest JSON for Agent consumption')
-  .option('-o, --output <path>', 'Output file path', '.agentstage/pages-manifest.json')
+  .option('-o, --output <path>', 'Output file path (relative to workspace)', '.agentstage/pages-manifest.json')
   .option('--stdout', 'Output to stdout instead of file')
   .action(async (options) => {
     if (!isInitialized()) {
-      consola.error('Project not initialized. Please run `agentstage dev init` first.');
+      consola.error('Project not initialized. Please run `agentstage init` first.');
       process.exit(1);
     }
 
     const workspaceDir = await getWorkspaceDir();
+    
+    // 安全检查：验证输出路径
+    if (options.output.includes('..')) {
+      consola.error('Invalid output path: path traversal (..) is not allowed.');
+      process.exit(1);
+    }
+    
+    // 禁止绝对路径
+    if (isAbsolute(options.output)) {
+      consola.error('Invalid output path: absolute paths are not allowed. Use a relative path.');
+      process.exit(1);
+    }
+
     const routesDir = join(workspaceDir, 'src', 'routes');
     const config = await readRuntimeConfig();
 
@@ -76,6 +89,15 @@ export const pageManifestCommand = new Command('manifest')
       console.log(json);
     } else {
       const outputPath = join(workspaceDir, options.output);
+      
+      // 最终安全检查：确保解析后的路径在工作目录内
+      const resolvedOutput = resolve(outputPath);
+      const resolvedWorkspace = resolve(workspaceDir);
+      if (!resolvedOutput.startsWith(resolvedWorkspace)) {
+        consola.error('Invalid output path: must be within workspace directory.');
+        process.exit(1);
+      }
+      
       await mkdir(join(outputPath, '..'), { recursive: true });
       await writeFile(outputPath, json);
 

@@ -13,7 +13,7 @@ export const runGetStateCommand = new Command('get-state')
   .option('-p, --pretty', 'Pretty print JSON', true)
   .action(async (pageId, options) => {
     if (!isInitialized()) {
-      consola.error('Project not initialized. Please run `agentstage dev init` first.');
+      consola.error('Project not initialized. Please run `agentstage init` first.');
       process.exit(1);
     }
 

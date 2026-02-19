@@ -9,7 +9,7 @@ export const runInspectCommand = new Command('inspect')
   .argument('<page>', 'Page ID')
   .action(async (pageId) => {
     if (!isInitialized()) {
-      consola.error('Project not initialized. Please run `agentstage dev init` first.');
+      consola.error('Project not initialized. Please run `agentstage init` first.');
       process.exit(1);
     }
 

@@ -30,7 +30,7 @@ export const devStartCommand = new Command('start')
   .action(async (options) => {
     // 1. 检查是否已初始化
     if (!isInitialized()) {
-      consola.error('Project not initialized. Please run `agentstage dev init` first.');
+      consola.error('Project not initialized. Please run `agentstage init` first.');
       process.exit(1);
     }
 

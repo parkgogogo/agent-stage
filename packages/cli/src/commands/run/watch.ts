@@ -10,7 +10,7 @@ export const runWatchCommand = new Command('watch')
   .option('-f, --format <type>', 'Output format (pretty|json)', 'pretty')
   .action(async (pageId, options) => {
     if (!isInitialized()) {
-      consola.error('Project not initialized. Please run `agentstage dev init` first.');
+      consola.error('Project not initialized. Please run `agentstage init` first.');
       process.exit(1);
     }
 

@@ -12,7 +12,7 @@ export const runExecCommand = new Command('exec')
   .option('--wait [timeoutMs]', 'Wait for browser ACK (default: 5000ms)')
   .action(async (pageId, actionName, payloadStr, options) => {
     if (!isInitialized()) {
-      consola.error('Project not initialized. Please run `agentstage dev init` first.');
+      consola.error('Project not initialized. Please run `agentstage init` first.');
       process.exit(1);
     }
 

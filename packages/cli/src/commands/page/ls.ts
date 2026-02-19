@@ -10,7 +10,7 @@ export const pageLsCommand = new Command('ls')
   .description('List all pages')
   .action(async () => {
     if (!isInitialized()) {
-      consola.error('Project not initialized. Please run `agentstage dev init` first.');
+      consola.error('Project not initialized. Please run `agentstage init` first.');
       process.exit(1);
     }
 
