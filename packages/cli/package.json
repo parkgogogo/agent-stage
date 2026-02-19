@@ -1,7 +1,10 @@
 {
   "name": "agent-stage",
-  "version": "0.2.1",
-  "files": ["dist", "template"],
+  "version": "0.2.2",
+  "files": [
+    "dist",
+    "template"
+  ],
   "type": "module",
   "bin": {
     "agent-stage": "./dist/index.js"
