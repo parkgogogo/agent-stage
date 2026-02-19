@@ -3,8 +3,8 @@ import consola from 'consola';
 import c from 'picocolors';
 import { join } from 'pathe';
 import { isInitialized, readRuntimeConfig, getPagesDir } from '../../utils/paths.js';
-import { BridgeClient } from 'agent-stage-bridge/sdk';
-import { FileStore } from 'agent-stage-bridge';
+import { BridgeClient } from '@agentstage/bridge/sdk';
+import { FileStore } from '@agentstage/bridge';
 
 export const runGetStateCommand = new Command('get-state')
   .description('Get state from a page')

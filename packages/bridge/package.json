@@ -1,5 +1,5 @@
 {
-  "name": "agent-stage-bridge",
+  "name": "@agentstage/bridge",
   "version": "0.1.0",
   "type": "module",
   "exports": {

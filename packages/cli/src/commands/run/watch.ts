@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import consola from 'consola';
 import c from 'picocolors';
 import { isInitialized, readRuntimeConfig } from '../../utils/paths.js';
-import { BridgeClient } from 'agent-stage-bridge/sdk';
+import { BridgeClient } from '@agentstage/bridge/sdk';
 
 export const runWatchCommand = new Command('watch')
   .description('Watch state changes on a page')

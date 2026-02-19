@@ -50,15 +50,15 @@ importers:
 
   packages/cli:
     dependencies:
+      '@agentstage/bridge':
+        specifier: workspace:*
+        version: link:../bridge
       '@agentstage/render':
         specifier: workspace:*
         version: link:../render
       '@clack/prompts':
         specifier: ^0.8.2
         version: 0.8.2
-      agent-stage-bridge:
-        specifier: workspace:*
-        version: link:../bridge
       commander:
         specifier: ^12.1.0
         version: 12.1.0

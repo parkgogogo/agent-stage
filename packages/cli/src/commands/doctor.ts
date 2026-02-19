@@ -164,7 +164,7 @@ export const doctorCommand = new Command('doctor')
     try {
       const workspaceDir = await getWorkspaceDir();
       const nodeModulesPath = join(workspaceDir, 'node_modules');
-      const bridgePath = join(nodeModulesPath, 'agent-stage-bridge');
+      const bridgePath = join(nodeModulesPath, '@agentstage/bridge');
 
       if (!existsSync(nodeModulesPath)) {
         results.push({
@@ -177,8 +177,8 @@ export const doctorCommand = new Command('doctor')
         results.push({
           name: 'Dependencies',
           status: 'error',
-          message: 'agent-stage-bridge not installed',
-          details: ['Run: npm install agent-stage-bridge'],
+          message: '@agentstage/bridge not installed',
+          details: ['Run: npm install @agentstage/bridge'],
         });
       } else {
         results.push({

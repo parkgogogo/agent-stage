@@ -1,8 +1,8 @@
 import { Command } from 'commander';
 import consola from 'consola';
 import { join } from 'pathe';
-import { FileStore } from 'agent-stage-bridge';
-import { BridgeClient } from 'agent-stage-bridge/sdk';
+import { FileStore } from '@agentstage/bridge';
+import { BridgeClient } from '@agentstage/bridge/sdk';
 import { isInitialized, readRuntimeConfig, getPagesDir } from '../utils/paths.js';
 
 export const execCommand = new Command('exec')

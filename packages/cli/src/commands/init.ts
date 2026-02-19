@@ -197,11 +197,11 @@ async function configurePackageJson(targetDir: string): Promise<void> {
 
   if (isDev) {
     // In dev mode, use file: protocol to reference the local packages
-    packageJson.dependencies['agent-stage-bridge'] = `file:${localBridgePath}`;
+    packageJson.dependencies['@agentstage/bridge'] = `file:${localBridgePath}`;
     packageJson.dependencies['@agentstage/render'] = `file:${localRenderPath}`;
   } else {
     // Use npm version for production
-    packageJson.dependencies['agent-stage-bridge'] = '^0.1.0';
+    packageJson.dependencies['@agentstage/bridge'] = '^0.1.0';
     packageJson.dependencies['@agentstage/render'] = '^0.2.0';
   }
 

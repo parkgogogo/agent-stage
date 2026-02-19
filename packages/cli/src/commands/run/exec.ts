@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import consola from 'consola';
 import c from 'picocolors';
 import { isInitialized, readRuntimeConfig } from '../../utils/paths.js';
-import { BridgeClient } from 'agent-stage-bridge/sdk';
+import { BridgeClient } from '@agentstage/bridge/sdk';
 
 export const runExecCommand = new Command('exec')
   .description('Execute an action on a page (requires live connection)')

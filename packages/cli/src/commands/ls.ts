@@ -6,7 +6,7 @@ import { existsSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'pathe';
 import { getWorkspaceDir, readRuntimeConfig, isInitialized } from '../utils/paths.js';
-import { BridgeClient } from 'agent-stage-bridge/sdk';
+import { BridgeClient } from '@agentstage/bridge/sdk';
 
 interface ListedStore {
   pageId: string;

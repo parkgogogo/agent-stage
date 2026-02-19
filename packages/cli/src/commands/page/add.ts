@@ -5,7 +5,7 @@ import { writeFile, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import { join } from 'pathe';
 import { getWorkspaceDir, isInitialized, readRuntimeConfig, getPagesDir } from '../../utils/paths.js';
-import { FileStore } from 'agent-stage-bridge';
+import { FileStore } from '@agentstage/bridge';
 import { printAgentErrorHelp, printAgentSuccess, printAgentHint } from '../../utils/agent-helper.js';
 
 // 从 stdin 读取数据

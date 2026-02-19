@@ -1,6 +1,6 @@
 {
   "name": "agent-stage",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "files": ["dist", "template"],
   "type": "module",
   "bin": {
@@ -12,7 +12,7 @@
     "typecheck": "pnpm -C ../bridge build && tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "agent-stage-bridge": "workspace:*",
+    "@agentstage/bridge": "workspace:*",
     "@agentstage/render": "workspace:*",
     "@clack/prompts": "^0.8.2",
     "commander": "^12.1.0",
