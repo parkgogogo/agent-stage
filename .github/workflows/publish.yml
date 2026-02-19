@@ -49,7 +49,7 @@ jobs:
           
           if [ "$LOCAL_VERSION" != "$NPM_VERSION" ]; then
             echo "📦 Publishing $PACKAGE_NAME@$LOCAL_VERSION (npm: $NPM_VERSION)"
-            npm publish --access public --provenance
+            pnpm publish --access public --provenance --no-git-checks
           else
             echo "⏭️ $PACKAGE_NAME@$LOCAL_VERSION already published"
           fi
@@ -65,7 +65,7 @@ jobs:
           
           if [ "$LOCAL_VERSION" != "$NPM_VERSION" ]; then
             echo "📦 Publishing $PACKAGE_NAME@$LOCAL_VERSION (npm: $NPM_VERSION)"
-            npm publish --access public --provenance
+            pnpm publish --access public --provenance --no-git-checks
           else
             echo "⏭️ $PACKAGE_NAME@$LOCAL_VERSION already published"
           fi
@@ -81,7 +81,7 @@ jobs:
           
           if [ "$LOCAL_VERSION" != "$NPM_VERSION" ]; then
             echo "📦 Publishing $PACKAGE_NAME@$LOCAL_VERSION (npm: $NPM_VERSION)"
-            npm publish --access public --provenance
+            pnpm publish --access public --provenance --no-git-checks
           else
             echo "⏭️ $PACKAGE_NAME@$LOCAL_VERSION already published"
           fi
