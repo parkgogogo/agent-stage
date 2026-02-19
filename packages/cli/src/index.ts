@@ -6,6 +6,7 @@ import consola from 'consola';
 import { devCommand } from './commands/dev/index.js';
 import { pageCommand } from './commands/page/index.js';
 import { runCommand } from './commands/run/index.js';
+import { guideCommand } from './commands/guide.js';
 
 const program = new Command();
 
@@ -18,6 +19,7 @@ program
 program.addCommand(devCommand);
 program.addCommand(pageCommand);
 program.addCommand(runCommand);
+program.addCommand(guideCommand);
 
 // Error handling
 program.exitOverride();
