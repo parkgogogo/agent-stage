@@ -11,12 +11,7 @@
     "resolveJsonModule": true,
     "declaration": true,
     "outDir": "./dist",
-    "rootDir": "./src",
-    "paths": {
-      "agent-stage-bridge": ["./node_modules/agent-stage-bridge/dist/gateway/index.d.ts"],
-      "agent-stage-bridge/sdk": ["./node_modules/agent-stage-bridge/dist/sdk/index.d.ts"],
-      "agent-stage-bridge/browser": ["./node_modules/agent-stage-bridge/dist/browser/index.d.ts"]
-    }
+    "rootDir": "./src"
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
