@@ -1,11 +1,12 @@
 name: Bump Version and Publish
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
       - 'packages/**'
-      - '.github/workflows/bump-publish.yml'
+      - '.github/workflows/**'
 
 concurrency:
   group: bump-publish-${{ github.ref }}
