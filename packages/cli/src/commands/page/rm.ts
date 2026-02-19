@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import * as p from '@clack/prompts';
 import consola from 'consola';
 import c from 'picocolors';
-import { unlink } from 'fs/promises';
+import { unlink, rmdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import { join } from 'pathe';
 import { getWorkspaceDir, isInitialized } from '../../utils/paths.js';
@@ -19,6 +19,9 @@ export const pageRmCommand = new Command('rm')
 
     const workspaceDir = await getWorkspaceDir();
     const pageFile = join(workspaceDir, 'src', 'routes', `${name}.tsx`);
+    const pageDir = join(workspaceDir, 'src', 'pages', name);
+    const uiFile = join(pageDir, 'ui.json');
+    const storeFile = join(pageDir, 'store.json');
     const typeFile = join(workspaceDir, '.agentstage', 'types', `${name}.d.ts`);
 
     if (!existsSync(pageFile)) {
@@ -40,16 +43,39 @@ export const pageRmCommand = new Command('rm')
     }
 
     try {
-      // Remove page file
+      // Remove route file
       await unlink(pageFile);
+      console.log(`  Removed: ${c.gray(`src/routes/${name}.tsx`)}`);
+
+      // Remove UI file if exists
+      if (existsSync(uiFile)) {
+        await unlink(uiFile);
+        console.log(`  Removed: ${c.gray(`src/pages/${name}/ui.json`)}`);
+      }
+
+      // Remove store file if exists
+      if (existsSync(storeFile)) {
+        await unlink(storeFile);
+        console.log(`  Removed: ${c.gray(`src/pages/${name}/store.json`)}`);
+      }
+
+      // Try to remove page directory (if empty)
+      if (existsSync(pageDir)) {
+        try {
+          await rmdir(pageDir);
+          console.log(`  Removed: ${c.gray(`src/pages/${name}/`)}`);
+        } catch {
+          // Directory not empty, skip
+        }
+      }
 
       // Remove type file if exists
       if (existsSync(typeFile)) {
         await unlink(typeFile);
+        console.log(`  Removed: ${c.gray(`.agentstage/types/${name}.d.ts`)}`);
       }
 
       consola.success(`Page "${name}" removed`);
-      console.log(`  Removed: ${c.gray(`src/routes/${name}.tsx`)}`);
 
     } catch (error: any) {
       consola.error('Failed to remove page:', error.message);
