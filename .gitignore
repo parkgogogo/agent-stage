@@ -11,4 +11,5 @@ pnpm-debug.log*
 # env
 .env
 .env.*
-/skills/
+# Allow skill files for agent-stage
+# /skills/  # Commented out to include skill documentation
