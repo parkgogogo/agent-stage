@@ -233,22 +233,7 @@ async function configurePackageJson(targetDir: string): Promise<void> {
 }
 
 async function installDependencies(targetDir: string): Promise<void> {
-  // Check if we're in the monorepo by looking for packages/bridge from the CLI location
-  // From packages/cli/src/commands/dev/init.ts -> packages/cli/src/ -> packages/cli/ -> packages/
-  const currentFilePath = fileURLToPath(import.meta.url);
-  const localBridgePath = resolve(join(dirname(currentFilePath), '..', '..', '..', '..', 'bridge'));
-  const isDev = existsSync(localBridgePath);
-
-  if (isDev) {
-    // In development mode (monorepo), use pnpm
-    try {
-      await execa('pnpm', ['install'], { cwd: targetDir, stdio: 'pipe' });
-    } catch {
-      // Fallback to npm if pnpm is not available
-      await execa('npm', ['install'], { cwd: targetDir, stdio: 'pipe' });
-    }
-  } else {
-    // In production, use npm
-    await execa('npm', ['install'], { cwd: targetDir, stdio: 'pipe' });
-  }
+  // Use npm with --legacy-peer-deps to resolve peer dependency conflicts
+  // This is needed because @json-render packages have strict peer deps
+  await execa('npm', ['install', '--legacy-peer-deps'], { cwd: targetDir, stdio: 'pipe' });
 }
