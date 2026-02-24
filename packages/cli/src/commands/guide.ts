@@ -24,7 +24,7 @@ interface GuideSection {
 const guides: Record<string, GuideSection> = {
   'quickstart': {
     title: 'Quick Start for Agents',
-    description: 'Get started with agentstage in 3 steps',
+    description: 'Get started with agentstage in 4 steps',
     examples: [
       {
         scenario: '1. Initialize project (first time only)',
@@ -33,11 +33,16 @@ const guides: Record<string, GuideSection> = {
       },
       {
         scenario: '2. Create a page',
-        command: 'agentstage page add mypage --ui \'{...}\' --state \'{...}\'',
-        explanation: 'Creates a page with UI and initial state'
+        command: 'agentstage page add mypage',
+        explanation: 'Creates page files at pages/mypage/ui.json and pages/mypage/store.json'
       },
       {
-        scenario: '3. Start page runtime',
+        scenario: '3. Generate prompt for AI UI JSON',
+        command: 'agentstage prompt ui --page mypage',
+        explanation: 'Prints a prompt you can send to AI to generate valid ui.json'
+      },
+      {
+        scenario: '4. Start page runtime',
         command: 'agentstage serve mypage',
         explanation: 'Starts the page runtime process'
       }
@@ -61,9 +66,9 @@ const guides: Record<string, GuideSection> = {
         explanation: 'Creates page with UI spec and initial state'
       },
       {
-        scenario: 'Create empty page (get prompts)',
+        scenario: 'Create empty page then generate prompt',
         command: 'agentstage page add todo',
-        explanation: 'Creates page with default UI and outputs prompts for AI'
+        explanation: 'Creates skeleton files. Then run: agentstage prompt ui --page todo'
       },
       {
         scenario: 'Create page from stdin (for large JSON)',
@@ -86,6 +91,40 @@ const guides: Record<string, GuideSection> = {
         error: 'Page name must be lowercase letters, numbers, and hyphens',
         cause: 'Name contains invalid characters',
         fix: 'Use only: a-z, 0-9, - (e.g., "my-page", "todo-app")'
+      }
+    ]
+  },
+
+  'prompt-ui': {
+    title: 'Prompt for UI JSON',
+    description: 'Generate prompt text for AI to produce valid json-render ui.json',
+    examples: [
+      {
+        scenario: 'Generate a generic prompt',
+        command: 'agentstage prompt ui',
+        explanation: 'Outputs a reusable prompt with JSON shape and binding rules'
+      },
+      {
+        scenario: 'Generate with page context',
+        command: 'agentstage prompt ui --page todo',
+        explanation: 'Includes current ui.json/store.json context to guide refinement'
+      },
+      {
+        scenario: 'Pipe prompt into a file',
+        command: 'agentstage prompt ui --page todo > /tmp/todo.prompt.txt',
+        explanation: 'Useful for automation or LLM pipeline integration'
+      }
+    ],
+    commonErrors: [
+      {
+        error: 'Project not initialized',
+        cause: 'Using --page without initialized workspace',
+        fix: 'Run: agentstage init'
+      },
+      {
+        error: 'Page "xxx" not found',
+        cause: 'The target page has no pages/<id>/ui.json yet',
+        fix: 'Run: agentstage page add <id> first'
       }
     ]
   },
@@ -226,7 +265,7 @@ push/pop: Navigate forward/back`
 
 export const guideCommand = new Command('guide')
   .description('Get guidance for using agentstage (for AI Agents)')
-  .argument('[topic]', 'Topic to get guidance on (quickstart, page-add, ui-json, state-management, validate)')
+  .argument('[topic]', 'Topic to get guidance on (quickstart, page-add, prompt-ui, ui-json, state-management, validate)')
   .option('--list', 'List all available topics')
   .action(async (topic, options) => {
     if (options.list || !topic) {
@@ -241,6 +280,7 @@ export const guideCommand = new Command('guide')
       console.log();
       console.log(c.dim('Example:'));
       console.log(`  ${c.cyan('agentstage guide quickstart')}`);
+      console.log(`  ${c.cyan('agentstage guide prompt-ui')}`);
       console.log(`  ${c.cyan('agentstage guide ui-json')}`);
       console.log();
       return;

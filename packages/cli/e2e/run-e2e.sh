@@ -36,6 +36,18 @@ assert_contains() {
   fi
 }
 
+assert_not_contains() {
+  local text="$1"
+  local needle="$2"
+  local label="$3"
+  if echo "${text}" | grep -q "${needle}"; then
+    fail "${label}"
+    echo "  should not contain: ${needle}"
+  else
+    pass "${label}"
+  fi
+}
+
 run_cli() {
   local render_serve_bin="${CLI_DIR}/../render/dist/serve-cli.js"
   if [[ -f "${render_serve_bin}" ]]; then
@@ -65,6 +77,7 @@ fi
 HELP_OUTPUT="$(run_cli --help 2>&1 || true)"
 assert_contains "${HELP_OUTPUT}" "serve" "help contains serve command"
 assert_contains "${HELP_OUTPUT}" "init" "help contains init command"
+assert_contains "${HELP_OUTPUT}" "prompt" "help contains prompt command"
 
 if command -v bun >/dev/null 2>&1; then
   echo "Bun detected. Running full E2E flow."
@@ -79,12 +92,18 @@ if command -v bun >/dev/null 2>&1; then
     fail "init creates minimal workspace"
   fi
 
-  run_cli page add counter >/dev/null
+  PAGE_ADD_OUTPUT="$(run_cli page add counter 2>&1 || true)"
   if [[ -f "${WS_DIR}/pages/counter/ui.json" && -f "${WS_DIR}/pages/counter/store.json" ]]; then
     pass "page add creates pages/counter/{ui,store}.json"
   else
     fail "page add creates pages/counter/{ui,store}.json"
   fi
+  assert_not_contains "${PAGE_ADD_OUTPUT}" "AI Prompts" "page add no longer prints AI Prompts"
+  assert_contains "${PAGE_ADD_OUTPUT}" "agentstage prompt ui --page counter" "page add points to prompt ui command"
+
+  PROMPT_OUTPUT="$(run_cli prompt ui --page counter 2>&1 || true)"
+  assert_contains "${PROMPT_OUTPUT}" "Return ONLY one valid JSON object." "prompt ui outputs strict JSON instruction"
+  assert_contains "${PROMPT_OUTPUT}" "counter" "prompt ui includes page context"
 
   run_cli serve counter --port "${TEST_PORT}" >"${TMP_LOG_DIR}/serve.log" 2>&1 || true
   STATUS_OUTPUT="$(run_cli status 2>&1 || true)"
@@ -108,10 +127,13 @@ else
   mkdir -p "${WS_DIR}/pages/counter" "${TMP_HOME}/.config/agentstage"
   printf '{"name":"ws"}\n' > "${WS_DIR}/package.json"
   printf '{"root":"main","elements":{"main":{"type":"Text","props":{"text":"hi"}}}}\n' > "${WS_DIR}/pages/counter/ui.json"
+  printf '{"state":{"count":0},"version":1,"updatedAt":"2026-02-01T00:00:00.000Z","pageId":"counter"}\n' > "${WS_DIR}/pages/counter/store.json"
   printf '%s' "${WS_DIR}" > "${TMP_HOME}/.config/agentstage/workspace"
 
   SERVE_OUTPUT="$(run_cli serve counter 2>&1 || true)"
   assert_contains "${SERVE_OUTPUT}" "Bun is required" "serve fails with bun required message"
+  PROMPT_OUTPUT="$(run_cli prompt ui --page counter 2>&1 || true)"
+  assert_contains "${PROMPT_OUTPUT}" "Return ONLY one valid JSON object." "prompt ui works without Bun"
   rm -rf "${WS_DIR}"
 fi
 

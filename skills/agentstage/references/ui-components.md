@@ -1,20 +1,8 @@
 # UI Components & JSON Rules
 
-本文件描述 `agentstage` 在 `@agentstage/render` 下的组件来源和 JSON 约束。
+本文件用于指导通过 CLI 生成和校验 `pages/<pageId>/ui.json`。
 
-## 组件来源
-
-当前 render registry 默认来自 `@json-render/shadcn`，并在 render 内部注入。  
-不要假设可以在 render 外部注册自定义 React 组件。
-
-常见组件（非完整列表）：
-
-- Layout: `Stack`, `Card`, `Grid`, `Separator`
-- Typography: `Heading`, `Text`, `Badge`
-- Form: `Input`, `Button`, `Select`, `Checkbox`, `Switch`
-- Data/Feedback: `Table`, `Tabs`, `Dialog`, `Accordion`, `Alert`, `Progress`, `Skeleton`, `Spinner`
-
-## JSON 结构最小要求
+## 必须输出的 JSON 结构
 
 ```json
 {
@@ -22,49 +10,49 @@
   "elements": {
     "main": {
       "type": "Stack",
-      "props": { "direction": "vertical", "gap": "md" },
+      "props": {},
       "children": ["title"]
     },
     "title": {
       "type": "Heading",
-      "props": { "text": "Hello Agentstage", "level": "h1" }
+      "props": { "text": "Hello", "level": "h1" }
     }
   }
 }
 ```
 
-必须检查：
+## 结构约束
 
-1. `root` 存在于 `elements`。  
-2. 每个 `children` id 都能在 `elements` 找到。  
-3. `type` 是已注册组件名。  
-4. `props` 保持 JSON 可序列化（函数与 class 实例都不要写入）。
+1. `root` 必须是 `elements` 里的 key。  
+2. `children` 里引用的 id 必须存在。  
+3. `props` 必须是 JSON 可序列化内容。  
+4. 推荐先用 `agentstage prompt ui --page <id>` 生成带上下文 prompt 再让 LLM 产出 JSON。
 
-## 状态绑定写法
+## 常见组件（示例）
+
+- Layout: `Stack`, `Card`, `Grid`, `Separator`
+- Typography: `Heading`, `Text`, `Badge`
+- Inputs: `Input`, `Button`, `Select`, `Checkbox`, `Switch`
+- Data/Feedback: `Table`, `Tabs`, `Dialog`, `Accordion`, `Alert`, `Progress`, `Skeleton`, `Spinner`
+
+## 状态绑定语法
 
 - 读取：`{ "$state": "/path" }`
 - 双向绑定：`{ "$bindState": "/path" }`
-- 列表 item：`{ "$item": "field" }`
-- 列表 index：`{ "$index": true }`
+- 列表项：`{ "$item": "fieldName" }`
+- 列表索引：`{ "$index": true }`
 
-## 动作写法
-
-示例：
+## 动作语法
 
 ```json
 {
   "type": "Button",
-  "props": { "label": "Submit" },
+  "props": { "label": "Save" },
   "on": {
     "press": {
-      "action": "submitForm",
-      "params": { "value": { "$state": "/form/value" } }
+      "action": "setState",
+      "params": { "statePath": "/saved", "value": true }
     }
   }
 }
 ```
-
-当使用自定义动作名（如 `submitForm`）时，必须在 `createRenderRuntime({ actions, actionHandlers })` 中同时提供：
-
-1. `actions.submitForm` 定义（描述 + 参数 schema）  
-2. `actionHandlers.submitForm` 处理函数

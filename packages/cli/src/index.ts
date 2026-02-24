@@ -14,6 +14,7 @@ import { stopCommand } from './commands/stop.js';
 import { statusCommand } from './commands/status.js';
 import { pageCommand } from './commands/page/index.js';
 import { runCommand } from './commands/run/index.js';
+import { promptCommand } from './commands/prompt/index.js';
 import { guideCommand } from './commands/guide.js';
 import { cleanupCommand } from './commands/cleanup.js';
 import { componentsCommand } from './commands/components.js';
@@ -35,6 +36,7 @@ program.addCommand(stopCommand);  // stop
 program.addCommand(statusCommand); // status
 program.addCommand(pageCommand);     // page add/rm/ls/manifest
 program.addCommand(runCommand);      // run get-state/set-state/exec/inspect/watch
+program.addCommand(promptCommand);   // prompt ui
 program.addCommand(guideCommand);    // guide
 program.addCommand(cleanupCommand);  // cleanup
 program.addCommand(componentsCommand); // components

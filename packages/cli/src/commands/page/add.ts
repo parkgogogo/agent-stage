@@ -45,6 +45,7 @@ export const pageAddCommand = new Command('add')
 
       // 处理 UI
       let uiContent: Record<string, unknown>;
+      const hasCustomUi = options.uiStdin || options.ui;
       if (options.uiStdin) {
         // 从 stdin 读取 UI
         const input = await readStdin();
@@ -110,10 +111,9 @@ export const pageAddCommand = new Command('add')
       // 输出结果
       const port = config?.port || 3000;
       
-      if (options.ui) {
-        // 提供了完整 UI
+      if (hasCustomUi) {
         printAgentSuccess(
-            `Page "${name}" created with custom UI and state`,
+            `Page "${name}" created with custom UI`,
           [
             `Start runtime: agentstage serve ${name}`,
             `Open http://localhost:${port} to see your page`,
@@ -121,21 +121,12 @@ export const pageAddCommand = new Command('add')
           ]
         );
       } else {
-        // 默认 UI，输出 prompts
         consola.success(`Page "${name}" created`);
         console.log(`  UI:    ${c.cyan(`pages/${name}/ui.json`)}`);
         console.log(`  Store: ${c.cyan(`pages/${name}/store.json`)}`);
         console.log(`  URL:   ${c.cyan(`http://localhost:${port}/${name}`)}`);
         console.log();
-        console.log(c.bold('─'.repeat(60)));
-        console.log(c.bold('🤖 AI Prompts'));
-        console.log(c.bold('─'.repeat(60)));
-        console.log();
-        console.log(c.dim('Send this to AI to generate UI:'));
-        console.log();
-        console.log(generatePromptContent(name));
-        console.log(c.bold('─'.repeat(60)));
-        console.log();
+        printAgentHint(`Generate prompt: agentstage prompt ui --page ${name}`);
         printAgentHint(`Or provide UI directly: agentstage page add ${name} --ui '{...}' --state '{...}'`);
       }
 
@@ -189,49 +180,4 @@ function generateDefaultState(name: string): Record<string, unknown> {
 
 function toTitleCase(str: string): string {
   return str.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-}
-
-function generatePromptContent(name: string): string {
-  const titleName = toTitleCase(name);
-
-  return `# Generate UI for "${titleName}" page
-
-Output JSON format:
-\`\`\`json
-{
-  "root": "main",
-  "elements": {
-    "element-id": {
-      "type": "ComponentName",
-      "props": { ... },
-      "children": ["child-id-1"],
-      "on": { "press": { "action": "setState", "params": {...} } }
-    }
-  }
-}
-\`\`\`
-
-## Components
-
-**Layout**: Stack(direction, gap, align, justify), Card(title, description), Separator
-**Typography**: Heading(text, level), Text(text, variant), Badge(text, variant)  
-**Inputs**: Input(label, name, type, placeholder), Button(label, variant)
-**Data**: Table(columns, rows), Tabs(tabs), Dialog(title, openPath)
-
-## State Bindings
-- Read: \`{ "$state": "/path" }\`
-- Write: \`{ "$bindState": "/path" }\`
-- List item: \`{ "$item": "field" }\`
-
-## Actions
-- \`setState\`: { statePath: string, value: any }
-- \`pushState\`: { statePath: string, value: any }
-- \`removeState\`: { statePath: string, index: number }
-
-## Usage
-\`\`\`bash
-agentstage page add ${name} --ui '{"root":"main",...}' --state '{"count":0}'
-\`\`\`
-
-Generate UI for: [describe your page here]`;
 }
