@@ -34,7 +34,7 @@
     }
   },
   "dependencies": {
-    "@agentstage/bridge": "^0.1.0"
+    "@agentstage/bridge": "workspace:*"
   },
   "peerDependencies": {
     "@json-render/core": "^0.7.0",
@@ -44,7 +44,6 @@
     "zod": "^3.22.0"
   },
   "devDependencies": {
-    "@agentstage/bridge": "workspace:*",
     "@json-render/core": "0.7.0",
     "@json-render/react": "0.7.0",
     "@json-render/shadcn": "^0.7.0",
