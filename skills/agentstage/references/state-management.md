@@ -1,286 +1,67 @@
 # State Management
 
-State management patterns and best practices for agent-stage.
+本文件说明 `agentstage` 的状态文件、live/file 双模式和桥接行为。
 
-## State Structure
+## store.json 结构
 
-Each page has a `store.json` file:
+每个页面状态位于 `pages/<pageId>/store.json`：
 
 ```json
 {
   "state": {
-    "key1": "value1",
-    "key2": 42,
-    "nested": {
-      "field": "value"
-    }
+    "count": 1
   },
-  "version": 1,
-  "updatedAt": "2026-02-20T02:21:47.677Z",
-  "pageId": "weather"
+  "version": 3,
+  "updatedAt": "2026-02-24T10:00:00.000Z",
+  "pageId": "counter"
 }
 ```
 
-## State Bindings
+`version` 由 `FileStore` 维护并递增，用于并发写入冲突检测。
 
-### Read State ($state)
+## CLI 两种状态操作模式
 
-Display a state value:
+### 文件模式（默认）
 
-```json
-{
-  "type": "Text",
-  "props": {},
-  "children": [{ "$state": "/temperature" }, "°C"]
-}
-```
+- 命令：`agentstage run set-state <pageId> '<json>'`
+- 特点：不要求 runtime 运行，也不要求浏览器已打开
+- 结果：写入 `store.json`，页面下次加载时生效
 
-### Two-Way Binding ($bindState)
+### 实时模式（live）
 
-Form inputs with automatic state synchronization:
+- 命令：`agentstage run set-state <pageId> '<json>' --live --wait 5000`
+- 特点：通过 websocket 推送给已连接页面
+- 要求：`agentstage serve <pageId>` 已运行，且页面在浏览器中已连接 bridge
 
-```json
-{
-  "type": "Input",
-  "props": {
-    "label": "Name",
-    "name": "name",
-    "$bindState": "/user/name"
-  }
-}
-```
-
-### List Items ($item)
-
-Iterate over arrays:
-
-```json
-{
-  "root": "list",
-  "elements": {
-    "list": {
-      "type": "Stack",
-      "props": {},
-      "children": { "$state": "/items" }
-    },
-    "item": {
-      "type": "Text",
-      "props": {},
-      "children": [{ "$item": "name" }]
-    }
-  }
-}
-```
-
-## Actions
-
-### setState
-
-Update a state value:
-
-```json
-{
-  "type": "Button",
-  "props": { "label": "Increment" },
-  "on": {
-    "press": {
-      "action": "setState",
-      "params": {
-        "statePath": "/count",
-        "value": 10
-      }
-    }
-  }
-}
-```
-
-### pushState
-
-Add to an array:
-
-```json
-{
-  "action": "pushState",
-  "params": {
-    "statePath": "/todos",
-    "value": { "text": "New task", "done": false }
-  }
-}
-```
-
-### removeState
-
-Remove from an array by index:
-
-```json
-{
-  "action": "removeState",
-  "params": {
-    "statePath": "/todos",
-    "index": 2
-  }
-}
-```
-
-## Patterns
-
-### Counter
-
-```json
-{
-  "state": { "count": 0 }
-}
-```
-
-```json
-{
-  "root": "counter",
-  "elements": {
-    "counter": {
-      "type": "Card",
-      "props": { "className": "p-4" },
-      "children": ["display", "buttons"]
-    },
-    "display": {
-      "type": "Heading",
-      "props": { "level": 2 },
-      "children": ["Count: ", { "$state": "/count" }]
-    },
-    "buttons": {
-      "type": "Stack",
-      "props": { "direction": "horizontal", "gap": 2 },
-      "children": ["inc", "dec"]
-    },
-    "inc": {
-      "type": "Button",
-      "props": { "label": "+" },
-      "on": {
-        "press": {
-          "action": "setState",
-          "params": { "statePath": "/count", "value": { "$eval": "state.count + 1" } }
-        }
-      }
-    }
-  }
-}
-```
-
-### Form Handling
-
-```json
-{
-  "state": {
-    "form": { "name": "", "email": "" },
-    "submitted": false
-  }
-}
-```
-
-```json
-{
-  "root": "form-card",
-  "elements": {
-    "form-card": {
-      "type": "Card",
-      "props": { "title": "Contact Form" },
-      "children": ["name", "email", "submit", "success"]
-    },
-    "name": {
-      "type": "Input",
-      "props": {
-        "label": "Name",
-        "name": "name",
-        "$bindState": "/form/name"
-      }
-    },
-    "email": {
-      "type": "Input",
-      "props": {
-        "label": "Email",
-        "name": "email",
-        "type": "email",
-        "$bindState": "/form/email"
-      }
-    },
-    "submit": {
-      "type": "Button",
-      "props": { "label": "Submit" },
-      "on": {
-        "press": {
-          "action": "setState",
-          "params": { "statePath": "/submitted", "value": true }
-        }
-      }
-    },
-    "success": {
-      "type": "Alert",
-      "props": {
-        "title": "Success!",
-        "description": "Form submitted.",
-        "variant": "default"
-      }
-    }
-  }
-}
-```
-
-### Conditional Display
-
-Use state to conditionally show elements:
-
-```json
-{
-  "state": { "showDetails": false }
-}
-```
-
-```json
-{
-  "root": "container",
-  "elements": {
-    "container": {
-      "type": "Stack",
-      "props": {},
-      "children": ["toggle", "details"]
-    },
-    "toggle": {
-      "type": "Button",
-      "props": { "label": "Toggle Details" },
-      "on": {
-        "press": {
-          "action": "setState",
-          "params": { "statePath": "/showDetails", "value": { "$eval": "!state.showDetails" } }
-        }
-      }
-    }
-  }
-}
-```
-
-## CLI State Commands
-
-### Get State
+## 常用命令
 
 ```bash
-agentstage run get-state <page-name>
+# 读状态（优先文件）
+agentstage run get-state counter --file
+
+# 读状态（优先 live，失败可退回 --file）
+agentstage run get-state counter
+
+# 监听状态变化
+agentstage run watch counter
+
+# 查看 schema / actions / 当前状态
+agentstage run inspect counter
+
+# 执行动作
+agentstage run exec counter someAction '{"x":1}'
 ```
 
-### Set State
+## 一致性行为
 
-```bash
-agentstage run set-state <page-name> '<json>'
-```
+1. 浏览器上报 `store.stateChanged` 后，gateway 写入文件并广播给订阅客户端。  
+2. 当发生版本冲突时，gateway 会以文件中的最新状态回推浏览器。  
+3. `setState --wait` 依赖 ACK，超时会报错并暴露连接/处理问题。  
+4. 页面断开连接时，live 命令会提示 page not connected。
 
-Example:
+## 实践建议
 
-```bash
-agentstage run set-state weather '{"temperature": 30, "condition": "☀️"}'
-```
-
-## Best Practices
-
-1. **Keep state flat**: Avoid deeply nested structures when possible
-2. **Use consistent naming**: camelCase for state keys
-3. **Initialize all values**: Provide defaults in initial state
-4. **Group related data**: Use objects for related fields
-5. **Avoid derived state**: Calculate values in UI rather than storing
+1. 批量初始化数据时先用文件模式。  
+2. 演示或联调时用 live + wait，确保操作成功落地。  
+3. 需要可回放时，把关键状态更新也落盘（CLI 默认就是落盘）。  
+4. 遇到 live 失败先执行：`agentstage status`，再检查页面是否已打开。

@@ -1,386 +1,86 @@
 # Examples
 
-Common use case examples for agent-stage.
-
-## Weather Widget
-
-Create a weather display page:
+## 示例 1：CLI 一次起页（推荐）
 
 ```bash
-# Initialize project
-agentstage dev init --yes --skip-cloudflared-check
-
-# Create weather page with state
-agentstage page add weather --state '{
-  "location": "北京",
-  "temperature": 25,
-  "condition": "☀️",
-  "humidity": 60,
-  "wind": "↗ 12km/h"
-}'
+agentstage init -y --skip-cloudflared-check
+agentstage page add counter --state '{"count":0}'
+agentstage serve counter --port 3000
 ```
 
-UI JSON:
+另开终端：
 
-```json
-{
-  "root": "main",
-  "elements": {
-    "main": {
-      "type": "Card",
-      "props": { "className": "p-6 max-w-md mx-auto mt-8" },
-      "children": ["location", "weather-main", "details"]
-    },
-    "location": {
-      "type": "Heading",
-      "props": { "level": 2, "className": "text-center mb-4" },
-      "children": [{ "$state": "/location" }]
-    },
-    "weather-main": {
-      "type": "Stack",
-      "props": { "direction": "horizontal", "className": "items-center justify-center gap-4 mb-6" },
-      "children": ["icon", "temp"]
-    },
-    "icon": {
-      "type": "Text",
-      "props": { "className": "text-6xl" },
-      "children": [{ "$state": "/condition" }]
-    },
-    "temp": {
-      "type": "Heading",
-      "props": { "level": 1, "className": "text-5xl" },
-      "children": [{ "$state": "/temperature" }, "°C"]
-    },
-    "details": {
-      "type": "Grid",
-      "props": { "cols": 2, "gap": 4 },
-      "children": ["humidity-card", "wind-card"]
-    },
-    "humidity-card": {
-      "type": "Card",
-      "props": { "className": "p-3 bg-muted" },
-      "children": ["humidity-label", "humidity-value"]
-    },
-    "humidity-label": {
-      "type": "Text",
-      "props": { "className": "text-sm text-muted-foreground" },
-      "children": ["湿度"]
-    },
-    "humidity-value": {
-      "type": "Text",
-      "props": { "className": "text-lg font-semibold" },
-      "children": [{ "$state": "/humidity" }, "%"]
-    },
-    "wind-card": {
-      "type": "Card",
-      "props": { "className": "p-3 bg-muted" },
-      "children": ["wind-label", "wind-value"]
-    },
-    "wind-label": {
-      "type": "Text",
-      "props": { "className": "text-sm text-muted-foreground" },
-      "children": ["风速"]
-    },
-    "wind-value": {
-      "type": "Text",
-      "props": { "className": "text-lg font-semibold" },
-      "children": [{ "$state": "/wind" }]
-    }
+```bash
+agentstage run set-state counter '{"count":1}' --live --wait 5000
+agentstage run get-state counter
+```
+
+## 示例 2：通过 --ui 直接创建页面
+
+```bash
+agentstage page add hello --ui '{
+  "root":"main",
+  "elements":{
+    "main":{"type":"Card","children":["title","desc"]},
+    "title":{"type":"Heading","props":{"text":"Hello","level":"h1"}},
+    "desc":{"type":"Text","children":["Welcome to agentstage"]}
   }
+}' --state '{"ready":true}'
+```
+
+## 示例 3：让 AI 生成 JSON
+
+```bash
+agentstage page add weather
+```
+
+不传 `--ui` 时，CLI 会输出 `AI Prompts`。  
+把该提示词发给模型，要求模型只输出合法 JSON spec，然后再用 `--ui` 回填。
+
+## 示例 4：React 里最小接入 render
+
+```tsx
+import { RenderPage } from "@agentstage/render";
+
+export function App() {
+  return <RenderPage pageId="counter" />;
 }
 ```
 
-Start server:
+## 示例 5：给 LLM 提供 schema 与系统提示
 
-```bash
-cd ~/.agentstage/webapp
-agentstage dev start
-# Open http://localhost:3000/weather
+```ts
+import { createRenderAgentKit } from "@agentstage/render";
+
+const kit = createRenderAgentKit();
+const systemPrompt = kit.systemPrompt();
+const schema = kit.jsonSchema();
 ```
 
-## Todo List
+把 `systemPrompt + schema` 作为约束，要求模型输出满足 schema 的 UI JSON。
 
-Create a todo list with add/remove functionality:
+## 示例 6：程序化启动渲染服务（Bun）
 
-```bash
-agentstage page add todos --state '{
-  "todos": [
-    { "id": 1, "text": "Buy groceries", "done": false },
-    { "id": 2, "text": "Walk the dog", "done": true }
-  ],
-  "newTodo": ""
-}'
+```ts
+import { startRenderServe } from "@agentstage/render/serve";
+
+const handle = await startRenderServe({
+  workspaceDir: process.cwd(),
+  pageId: "counter",
+  port: 3000,
+});
+
+// ... later
+await handle.close();
 ```
 
-UI JSON:
+## 示例 7：服务端用 SDK 改状态
 
-```json
-{
-  "root": "main",
-  "elements": {
-    "main": {
-      "type": "Card",
-      "props": { "className": "p-6 max-w-lg mx-auto" },
-      "children": ["title", "input-row", "list"]
-    },
-    "title": {
-      "type": "Heading",
-      "props": { "level": 2, "className": "mb-4" },
-      "children": ["Todo List"]
-    },
-    "input-row": {
-      "type": "Stack",
-      "props": { "direction": "horizontal", "gap": 2, "className": "mb-4" },
-      "children": ["input", "add-btn"]
-    },
-    "input": {
-      "type": "Input",
-      "props": {
-        "placeholder": "Add new task...",
-        "$bindState": "/newTodo"
-      }
-    },
-    "add-btn": {
-      "type": "Button",
-      "props": { "label": "Add" },
-      "on": {
-        "press": {
-          "action": "pushState",
-          "params": {
-            "statePath": "/todos",
-            "value": { "id": { "$eval": "Date.now()" }, "text": { "$state": "/newTodo" }, "done": false }
-          }
-        }
-      }
-    }
-  }
-}
-```
+```ts
+import { BridgeClient } from "@agentstage/bridge/sdk";
 
-## Dashboard Card
-
-Display metrics in a dashboard:
-
-```bash
-agentstage page add dashboard --state '{
-  "metrics": {
-    "users": 1234,
-    "revenue": 5678,
-    "orders": 89
-  },
-  "period": "Today"
-}'
-```
-
-UI JSON:
-
-```json
-{
-  "root": "main",
-  "elements": {
-    "main": {
-      "type": "Stack",
-      "props": { "gap": 4 },
-      "children": ["header", "grid"]
-    },
-    "header": {
-      "type": "Stack",
-      "props": { "direction": "horizontal", "className": "justify-between items-center" },
-      "children": ["title", "period"]
-    },
-    "title": {
-      "type": "Heading",
-      "props": { "level": 2 },
-      "children": ["Dashboard"]
-    },
-    "period": {
-      "type": "Badge",
-      "props": {
-        "text": { "$state": "/period" },
-        "variant": "secondary"
-      }
-    },
-    "grid": {
-      "type": "Grid",
-      "props": { "cols": 3, "gap": 4 },
-      "children": ["users-card", "revenue-card", "orders-card"]
-    },
-    "users-card": {
-      "type": "Card",
-      "props": { "className": "p-4" },
-      "children": ["users-label", "users-value"]
-    },
-    "users-label": {
-      "type": "Text",
-      "props": { "variant": "muted", "className": "text-sm" },
-      "children": ["Users"]
-    },
-    "users-value": {
-      "type": "Heading",
-      "props": { "level": 3, "className": "text-3xl" },
-      "children": [{ "$state": "/metrics/users" }]
-    },
-    "revenue-card": {
-      "type": "Card",
-      "props": { "className": "p-4" },
-      "children": ["revenue-label", "revenue-value"]
-    },
-    "revenue-label": {
-      "type": "Text",
-      "props": { "variant": "muted", "className": "text-sm" },
-      "children": ["Revenue"]
-    },
-    "revenue-value": {
-      "type": "Heading",
-      "props": { "level": 3, "className": "text-3xl" },
-      "children": ["$", { "$state": "/metrics/revenue" }]
-    },
-    "orders-card": {
-      "type": "Card",
-      "props": { "className": "p-4" },
-      "children": ["orders-label", "orders-value"]
-    },
-    "orders-label": {
-      "type": "Text",
-      "props": { "variant": "muted", "className": "text-sm" },
-      "children": ["Orders"]
-    },
-    "orders-value": {
-      "type": "Heading",
-      "props": { "level": 3, "className": "text-3xl" },
-      "children": [{ "$state": "/metrics/orders" }]
-    }
-  }
-}
-```
-
-## User Profile Form
-
-Create a user profile form with validation:
-
-```bash
-agentstage page add profile --state '{
-  "profile": {
-    "name": "",
-    "email": "",
-    "bio": ""
-  },
-  "saved": false
-}'
-```
-
-UI JSON:
-
-```json
-{
-  "root": "main",
-  "elements": {
-    "main": {
-      "type": "Card",
-      "props": { "className": "p-6 max-w-md mx-auto" },
-      "children": ["title", "form", "success"]
-    },
-    "title": {
-      "type": "Heading",
-      "props": { "level": 2, "className": "mb-4" },
-      "children": ["Profile"]
-    },
-    "form": {
-      "type": "Stack",
-      "props": { "gap": 4 },
-      "children": ["name", "email", "bio", "save"]
-    },
-    "name": {
-      "type": "Input",
-      "props": {
-        "label": "Name",
-        "name": "name",
-        "$bindState": "/profile/name"
-      }
-    },
-    "email": {
-      "type": "Input",
-      "props": {
-        "label": "Email",
-        "name": "email",
-        "type": "email",
-        "$bindState": "/profile/email"
-      }
-    },
-    "bio": {
-      "type": "Input",
-      "props": {
-        "label": "Bio",
-        "name": "bio",
-        "placeholder": "Tell us about yourself...",
-        "$bindState": "/profile/bio"
-      }
-    },
-    "save": {
-      "type": "Button",
-      "props": { "label": "Save Profile", "className": "w-full" },
-      "on": {
-        "press": {
-          "action": "setState",
-          "params": { "statePath": "/saved", "value": true }
-        }
-      }
-    },
-    "success": {
-      "type": "Alert",
-      "props": {
-        "title": "Profile Saved!",
-        "variant": "default"
-      }
-    }
-  }
-}
-```
-
-## Loading State
-
-Show loading skeletons while data loads:
-
-```bash
-agentstage page add loading-demo --state '{
-  "loading": true,
-  "data": null
-}'
-```
-
-UI JSON:
-
-```json
-{
-  "root": "main",
-  "elements": {
-    "main": {
-      "type": "Card",
-      "props": { "className": "p-6 max-w-md mx-auto" },
-      "children": ["title", "content"]
-    },
-    "title": {
-      "type": "Heading",
-      "props": { "level": 2 },
-      "children": ["Loading Example"]
-    },
-    "content": {
-      "type": "Stack",
-      "props": { "gap": 4 },
-      "children": ["skeleton1", "skeleton2", "skeleton3"]
-    },
-    "skeleton1": {
-      "type": "Skeleton",
-      "props": { "className": "h-4 w-[250px]" }
-    },
-    "skeleton2": {
-      "type": "Skeleton",
-      "props": { "className": "h-4 w-[200px]" }
-    },
-    "skeleton3": {
-      "type": "Skeleton",
-      "props": { "className": "h-4 w-[300px]" }
-    }
-  }
-}
+const client = new BridgeClient("ws://localhost:3000/_bridge");
+await client.connect();
+await client.setStateByKey("counter", "main", { count: 10 }, { waitForAck: true });
+client.disconnect();
 ```

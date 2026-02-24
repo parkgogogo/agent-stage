@@ -1,363 +1,70 @@
-# UI Components Reference
+# UI Components & JSON Rules
 
-Complete reference for all available UI components in agent-stage.
+本文件描述 `agentstage` 在 `@agentstage/render` 下的组件来源和 JSON 约束。
 
-## Layout Components
+## 组件来源
 
-### Stack
-Flexbox container for layout.
+当前 render registry 默认来自 `@json-render/shadcn`，并在 render 内部注入。  
+不要假设可以在 render 外部注册自定义 React 组件。
 
-```json
-{
-  "type": "Stack",
-  "props": {
-    "direction": "vertical",  // "vertical" | "horizontal"
-    "gap": 4,                 // number (spacing units)
-    "align": "center",        // "start" | "center" | "end" | "stretch"
-    "justify": "between",     // "start" | "center" | "end" | "between" | "around"
-    "className": "p-4"
-  },
-  "children": ["child1", "child2"]
-}
-```
+常见组件（非完整列表）：
 
-### Card
-Container with optional header and styling.
+- Layout: `Stack`, `Card`, `Grid`, `Separator`
+- Typography: `Heading`, `Text`, `Badge`
+- Form: `Input`, `Button`, `Select`, `Checkbox`, `Switch`
+- Data/Feedback: `Table`, `Tabs`, `Dialog`, `Accordion`, `Alert`, `Progress`, `Skeleton`, `Spinner`
+
+## JSON 结构最小要求
 
 ```json
 {
-  "type": "Card",
-  "props": {
-    "title": "Card Title",
-    "description": "Card description",
-    "className": "p-6 shadow-lg"
-  },
-  "children": ["content"]
-}
-```
-
-### Grid
-CSS Grid layout.
-
-```json
-{
-  "type": "Grid",
-  "props": {
-    "cols": 3,      // number of columns
-    "gap": 4,       // gap between items
-    "className": ""
-  },
-  "children": ["item1", "item2", "item3"]
-}
-```
-
-### Separator
-Visual divider line.
-
-```json
-{
-  "type": "Separator",
-  "props": {
-    "orientation": "horizontal"  // "horizontal" | "vertical"
-  }
-}
-```
-
-## Typography
-
-### Heading
-Section headers.
-
-```json
-{
-  "type": "Heading",
-  "props": {
-    "level": 2,           // 1-6 (h1-h6)
-    "className": "text-xl"
-  },
-  "children": ["Heading Text"]
-}
-```
-
-### Text
-Paragraph text.
-
-```json
-{
-  "type": "Text",
-  "props": {
-    "variant": "default",  // "default" | "muted" | "error" | "success"
-    "className": ""
-  },
-  "children": ["Text content"]
-}
-```
-
-### Badge
-Status indicator.
-
-```json
-{
-  "type": "Badge",
-  "props": {
-    "text": "Status",
-    "variant": "default"  // "default" | "secondary" | "destructive" | "outline"
-  }
-}
-```
-
-## Input Components
-
-### Input
-Text input field.
-
-```json
-{
-  "type": "Input",
-  "props": {
-    "label": "Email",
-    "name": "email",
-    "type": "email",      // "text" | "email" | "password" | "number"
-    "placeholder": "Enter email",
-    "$bindState": "/email"
-  }
-}
-```
-
-### Button
-Action button.
-
-```json
-{
-  "type": "Button",
-  "props": {
-    "label": "Click Me",
-    "variant": "default",  // "default" | "secondary" | "destructive" | "outline" | "ghost"
-    "size": "default",     // "default" | "sm" | "lg"
-    "disabled": false
-  },
-  "on": {
-    "press": {
-      "action": "setState",
-      "params": { "statePath": "/clicked", "value": true }
+  "root": "main",
+  "elements": {
+    "main": {
+      "type": "Stack",
+      "props": { "direction": "vertical", "gap": "md" },
+      "children": ["title"]
+    },
+    "title": {
+      "type": "Heading",
+      "props": { "text": "Hello Agentstage", "level": "h1" }
     }
   }
 }
 ```
 
-### Select
-Dropdown selection.
+必须检查：
+
+1. `root` 存在于 `elements`。  
+2. 每个 `children` id 都能在 `elements` 找到。  
+3. `type` 是已注册组件名。  
+4. `props` 保持 JSON 可序列化（函数与 class 实例都不要写入）。
+
+## 状态绑定写法
+
+- 读取：`{ "$state": "/path" }`
+- 双向绑定：`{ "$bindState": "/path" }`
+- 列表 item：`{ "$item": "field" }`
+- 列表 index：`{ "$index": true }`
+
+## 动作写法
+
+示例：
 
 ```json
 {
-  "type": "Select",
-  "props": {
-    "label": "Country",
-    "name": "country",
-    "options": [
-      { "value": "us", "label": "United States" },
-      { "value": "uk", "label": "United Kingdom" }
-    ],
-    "$bindState": "/country"
+  "type": "Button",
+  "props": { "label": "Submit" },
+  "on": {
+    "press": {
+      "action": "submitForm",
+      "params": { "value": { "$state": "/form/value" } }
+    }
   }
 }
 ```
 
-### Checkbox
-Boolean checkbox.
+当使用自定义动作名（如 `submitForm`）时，必须在 `createRenderRuntime({ actions, actionHandlers })` 中同时提供：
 
-```json
-{
-  "type": "Checkbox",
-  "props": {
-    "label": "I agree",
-    "name": "agreed",
-    "$bindState": "/agreed"
-  }
-}
-```
-
-### Switch
-Toggle switch.
-
-```json
-{
-  "type": "Switch",
-  "props": {
-    "label": "Notifications",
-    "name": "notifications",
-    "$bindState": "/notifications"
-  }
-}
-```
-
-### Slider
-Range slider.
-
-```json
-{
-  "type": "Slider",
-  "props": {
-    "label": "Volume",
-    "name": "volume",
-    "min": 0,
-    "max": 100,
-    "step": 1,
-    "$bindState": "/volume"
-  }
-}
-```
-
-## Data Display
-
-### Table
-Data table with columns and rows.
-
-```json
-{
-  "type": "Table",
-  "props": {
-    "columns": [
-      { "key": "name", "header": "Name" },
-      { "key": "email", "header": "Email" }
-    ],
-    "rows": [
-      { "name": "John", "email": "john@example.com" },
-      { "name": "Jane", "email": "jane@example.com" }
-    ]
-  }
-}
-```
-
-### Tabs
-Tabbed interface.
-
-```json
-{
-  "type": "Tabs",
-  "props": {
-    "tabs": [
-      {
-        "id": "tab1",
-        "label": "First Tab",
-        "children": ["content1"]
-      },
-      {
-        "id": "tab2",
-        "label": "Second Tab",
-        "children": ["content2"]
-      }
-    ]
-  }
-}
-```
-
-### Accordion
-Collapsible sections.
-
-```json
-{
-  "type": "Accordion",
-  "props": {
-    "items": [
-      {
-        "id": "item1",
-        "title": "Section 1",
-        "children": ["content1"]
-      },
-      {
-        "id": "item2",
-        "title": "Section 2",
-        "children": ["content2"]
-      }
-    ],
-    "type": "single"  // "single" | "multiple"
-  }
-}
-```
-
-### Dialog
-Modal dialog.
-
-```json
-{
-  "type": "Dialog",
-  "props": {
-    "title": "Confirm Action",
-    "description": "Are you sure?",
-    "openPath": "/dialogOpen",  // state path controlling visibility
-    "children": ["dialog-content"]
-  }
-}
-```
-
-## Feedback Components
-
-### Alert
-Notification banner.
-
-```json
-{
-  "type": "Alert",
-  "props": {
-    "title": "Success!",
-    "description": "Operation completed.",
-    "variant": "default"  // "default" | "destructive"
-  }
-}
-```
-
-### Progress
-Progress bar.
-
-```json
-{
-  "type": "Progress",
-  "props": {
-    "value": 75,
-    "max": 100,
-    "className": ""
-  }
-}
-```
-
-### Spinner
-Loading indicator.
-
-```json
-{
-  "type": "Spinner",
-  "props": {
-    "size": "default",  // "sm" | "default" | "lg"
-    "className": ""
-  }
-}
-```
-
-### Skeleton
-Placeholder loading state.
-
-```json
-{
-  "type": "Skeleton",
-  "props": {
-    "className": "h-4 w-[200px]"
-  }
-}
-```
-
-## Navigation
-
-### Pagination
-Page navigation.
-
-```json
-{
-  "type": "Pagination",
-  "props": {
-    "currentPage": 1,
-    "totalPages": 10,
-    "onPageChange": { "action": "setState", "params": { "statePath": "/page" } }
-  }
-}
-```
+1. `actions.submitForm` 定义（描述 + 参数 schema）  
+2. `actionHandlers.submitForm` 处理函数

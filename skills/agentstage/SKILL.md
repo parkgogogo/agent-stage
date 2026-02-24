@@ -1,35 +1,84 @@
 ---
 name: agentstage
-description: Create and manage interactive UI pages using agent-stage CLI. Use when the user wants to build a web UI, create pages with json-render, or work with the agent-stage framework. Covers project initialization, page creation with UI JSON specs, state management, and development server operations.
+description: Use this skill when working with the agent-stage stack: creating/running page runtimes with the `agentstage` CLI, generating JSON UI specs for `@agentstage/render`, controlling page state via `@agentstage/bridge`, or preparing AI prompt/schema for JSON generation. Cover the high-integration workflow (`init -> page add -> serve -> run`), Bun runtime requirements, built-in shadcn registry behavior, and practical integration boundaries.
 ---
 
 # Agentstage Skill
 
-Agent-stage is a CLI tool for creating interactive web UIs using JSON-render. It allows agents to define UI components via JSON specifications and manage application state.
+把 agent-stage 作为“高集成 JSON UI 运行时”来使用：  
+先产出 `pages/<pageId>/ui.json` 与 `store.json`，再用 `serve` 拉起页面和 bridge，最后用 `run` 命令驱动状态或动作。
 
-## Core Concepts
+## 先判断工作模式
 
-### Project Structure
+优先判断当前任务属于哪一类：
 
-An agent-stage project follows this structure:
-```
-.agentstage/webapp/
-├── package.json
-├── src/
-│   ├── routes/           # React Router route files
-│   │   ├── index.tsx
-│   │   └── [page-name].tsx
-│   ├── pages/            # Page UI definitions and state
-│   │   └── [page-name]/
-│   │       ├── ui.json   # UI component specification
-│   │       └── store.json # Initial state
-│   ├── components/       # Shared React components
-│   └── lib/             # Utilities and bridge
+1. CLI 运行页：使用 `agentstage init/page add/serve/run`，目标是尽快起页并可远程操控。  
+2. 包集成：在 React/Bun 项目中使用 `@agentstage/render` 和 `@agentstage/bridge` API。  
+3. AI 生成 JSON：用 `createRenderAgentKit()` 输出 system prompt + schema，引导模型只产出合法 spec。
+
+## CLI 标准流程（首选）
+
+1. 初始化工作区（Bun 必须）：
+```bash
+agentstage init --yes --skip-cloudflared-check
 ```
 
-### UI JSON Specification
+2. 创建页面：
+```bash
+# 默认骨架 + AI Prompt Generation 输出
+agentstage page add counter
 
-Pages are defined using a JSON-based UI specification:
+# 直接写入 UI 与初始状态
+agentstage page add counter --ui '{"root":"main","elements":{...}}' --state '{"count":0}'
+```
+
+3. 启动页面运行时（单页进程）：
+```bash
+agentstage serve counter --port 3000
+```
+
+4. 状态与动作控制：
+```bash
+# 文件模式（不依赖浏览器连接）
+agentstage run set-state counter '{"count":1}'
+agentstage run get-state counter --file
+
+# 实时模式（要求页面已连接 bridge）
+agentstage run set-state counter '{"count":2}' --live --wait 5000
+agentstage run watch counter
+agentstage run inspect counter
+agentstage run exec counter someAction '{"x":1}'
+```
+
+5. 查看与停止：
+```bash
+agentstage status
+agentstage stop
+```
+
+## 关键目录与约束
+
+默认工作区在 `~/.agentstage/webapp`，核心目录：
+
+```text
+pages/
+  <pageId>/
+    ui.json
+    store.json
+.agentstage/
+  runtime.json
+package.json
+```
+
+执行约束：
+
+1. 要求安装 Bun；`init` 和 `serve` 都依赖 Bun。  
+2. `serve <pageId>` 是单页进程模型；切换页面通常重新起一个进程。  
+3. 页面 id 只用小写字母、数字、连字符（`^[a-z0-9-]+$`）。
+
+## JSON Spec 生成规则
+
+始终输出 json-render 规范结构：
 
 ```json
 {
@@ -37,241 +86,83 @@ Pages are defined using a JSON-based UI specification:
   "elements": {
     "main": {
       "type": "Card",
-      "props": { "className": "p-6" },
-      "children": ["title", "content"]
+      "props": {},
+      "children": ["title"]
     },
     "title": {
       "type": "Heading",
-      "props": { "level": 2 },
-      "children": ["Page Title"]
-    },
-    "content": {
-      "type": "Text",
-      "props": { "variant": "muted" },
-      "children": [{ "$state": "/message" }]
+      "props": { "text": "Hello" }
     }
   }
 }
 ```
 
-### State Bindings
+遵守以下约束：
 
-- `{ "$state": "/path" }` - Read state value
-- `{ "$bindState": "/path" }` - Two-way state binding
-- `{ "$item": "fieldName" }` - List item binding
-- `{ "$index": true }` - List index binding
+1. `root` 必须指向 `elements` 中存在的节点。  
+2. `children` 引用的元素 id 必须存在。  
+3. `type` 使用已注册组件（当前默认来自 `@json-render/shadcn`）。  
+4. 状态读取/绑定使用 `$state`、`$bindState`。  
+5. 动作调用放在 `on.press.action`（或对应事件）中。
 
-## CLI Commands
+## Render/Bridge 程序化集成
 
-### Project Initialization
+在 React 中最小化接入：
 
-```bash
-# Initialize a new project (interactive)
-agentstage dev init
+```tsx
+import { RenderPage } from "@agentstage/render";
 
-# Initialize with defaults (non-interactive)
-agentstage dev init --yes --skip-cloudflared-check
-```
-
-**Important**: The project is created at `~/.agentstage/webapp/` by default, NOT in the current directory.
-
-### Development Server
-
-```bash
-# Start dev server
-cd ~/.agentstage/webapp
-agentstage dev start
-
-# Start with tunnel (expose to internet)
-agentstage dev start --tunnel
-```
-
-### Page Management
-
-```bash
-# Create a new page with default UI
-agentstage page add mypage
-
-# Create with custom UI JSON
-agentstage page add mypage --ui '{"root":"main","elements":{...}}'
-
-# Create with initial state
-agentstage page add mypage --state '{"count":0,"name":"test"}'
-
-# Create with both UI and state
-agentstage page add mypage --ui '{...}' --state '{...}'
-
-# List all pages
-agentstage page ls
-
-# Remove a page
-agentstage page rm mypage
-```
-
-### State Management
-
-```bash
-# Get page state
-agentstage run get-state mypage
-
-# Set page state
-agentstage run set-state mypage '{"key":"value"}'
-```
-
-## Available Components
-
-### Layout Components
-- `Stack` - Flexbox container (`direction`, `gap`, `align`, `justify`)
-- `Card` - Card container (`title`, `description`, `className`)
-- `Grid` - Grid layout (`cols`, `gap`)
-- `Separator` - Visual divider
-
-### Typography
-- `Heading` - Headers (`text`, `level`: h1-h6)
-- `Text` - Paragraph text (`text`, `variant`: default/muted)
-- `Badge` - Status badges (`text`, `variant`)
-
-### Inputs
-- `Input` - Text input (`label`, `name`, `type`, `placeholder`)
-- `Button` - Action button (`label`, `variant`, `on.press`)
-- `Select` - Dropdown (`label`, `name`, `options`)
-- `Checkbox` - Boolean toggle (`label`, `name`)
-- `Switch` - Toggle switch (`label`, `name`)
-
-### Data Display
-- `Table` - Data table (`columns`, `rows`)
-- `Tabs` - Tabbed interface (`tabs`)
-- `Accordion` - Collapsible sections (`items`)
-- `Dialog` - Modal dialog (`title`, `openPath`)
-
-### Feedback
-- `Alert` - Notification banner (`title`, `description`, `variant`)
-- `Progress` - Progress bar (`value`, `max`)
-- `Spinner` - Loading indicator
-- `Skeleton` - Placeholder loading state
-
-## Common Patterns
-
-### Weather Display Page
-
-```bash
-# Create weather page
-agentstage page add weather --state '{"location":"北京","temp":25,"condition":"☀️"}'
-
-# Then provide UI JSON
-```
-
-```json
-{
-  "root": "main",
-  "elements": {
-    "main": {
-      "type": "Card",
-      "props": { "className": "p-6 max-w-md mx-auto" },
-      "children": ["location", "weather-row"]
-    },
-    "location": {
-      "type": "Heading",
-      "props": { "level": 2 },
-      "children": [{ "$state": "/location" }]
-    },
-    "weather-row": {
-      "type": "Stack",
-      "props": { "direction": "horizontal", "gap": 4 },
-      "children": ["condition", "temp"]
-    },
-    "condition": {
-      "type": "Text",
-      "props": { "className": "text-4xl" },
-      "children": [{ "$state": "/condition" }]
-    },
-    "temp": {
-      "type": "Text",
-      "props": { "className": "text-2xl" },
-      "children": [{ "$state": "/temp" }, "°C"]
-    }
-  }
+export function App() {
+  return <RenderPage pageId="counter" />;
 }
 ```
 
-### Form with State Binding
+自定义动作（不自定义组件）：
 
-```json
-{
-  "root": "form",
-  "elements": {
-    "form": {
-      "type": "Stack",
-      "props": { "gap": 4 },
-      "children": ["name-input", "email-input", "submit"]
+```tsx
+import { createRenderRuntime } from "@agentstage/render";
+import { z } from "zod";
+
+const runtime = createRenderRuntime({
+  actions: {
+    submitForm: {
+      description: "Submit form data",
+      params: z.object({ value: z.string() }),
     },
-    "name-input": {
-      "type": "Input",
-      "props": {
-        "label": "Name",
-        "name": "name",
-        "$bindState": "/name"
-      }
+  },
+  actionHandlers: {
+    submitForm: async (params) => {
+      console.log("submitForm", params);
     },
-    "email-input": {
-      "type": "Input",
-      "props": {
-        "label": "Email",
-        "name": "email",
-        "type": "email",
-        "$bindState": "/email"
-      }
-    },
-    "submit": {
-      "type": "Button",
-      "props": { "label": "Submit" },
-      "on": {
-        "press": {
-          "action": "setState",
-          "params": { "statePath": "/submitted", "value": true }
-        }
-      }
-    }
-  }
-}
+  },
+});
 ```
 
-## Troubleshooting
+为 LLM 生成提示与 schema：
 
-### Project Not Initialized
-```
-Error: Project not initialized
-Fix: Run `agentstage dev init --yes --skip-cloudflared-check`
-```
+```ts
+import { createRenderAgentKit } from "@agentstage/render";
 
-### Page Already Exists
-```
-Error: Page "name" already exists
-Fix: Use a different name or remove with `agentstage page rm name`
+const kit = createRenderAgentKit();
+const systemPrompt = kit.systemPrompt();
+const schema = kit.jsonSchema();
 ```
 
-### Invalid JSON
-```
-Error: Invalid UI JSON format
-Fix: Ensure JSON is properly escaped and valid
-```
+自建 Bun 服务时：
 
-### Port Already in Use
-```
-Error: Port 3000 is already in use
-Fix: Stop other processes or use different port
-```
+1. 用 `startRenderServe()` 直接起渲染运行时。  
+2. 或用 `startBridgeBunServer()` 单独挂 bridge 网关。  
+3. 用 `BridgeClient`（`@agentstage/bridge/sdk`）从 CLI/服务端执行 `setState/dispatch/subscribe`。
 
-## Best Practices
+## 明确边界（避免误用）
 
-1. **Always initialize first**: Check if project exists before creating pages
-2. **Use lowercase page names**: Only lowercase letters, numbers, and hyphens allowed
-3. **Test JSON validity**: Validate UI JSON before passing to CLI
-4. **Use state bindings**: Leverage `$state` and `$bindState` for dynamic content
-5. **Organize pages**: Use descriptive page names that reflect functionality
+1. `@agentstage/render` 当前默认内置 shadcn registry；不在 render 外部注册自定义组件。  
+2. 扩展点主要是 actions（声明 + handler），不是组件注入。  
+3. `run --live` 依赖浏览器已连接；否则使用文件模式。  
+4. 部分 CLI 子命令仍有旧结构兼容代码；生产流程优先使用 `init/page add/serve/run/status/stop`。
 
-## References
+## 读取扩展参考
 
-- [UI Components Reference](references/ui-components.md) - Full component documentation
-- [State Management](references/state-management.md) - State patterns and best practices
-- [Examples](references/examples.md) - Common use case examples
+- 需要组件与 JSON 细节时，读取 [references/ui-components.md](references/ui-components.md)。  
+- 需要状态一致性与 live/file 模式细节时，读取 [references/state-management.md](references/state-management.md)。  
+- 需要端到端示例（CLI 与代码接入）时，读取 [references/examples.md](references/examples.md)。
