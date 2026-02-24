@@ -5,6 +5,10 @@
     "dist"
   ],
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/parkgogogo/agent-stage"
+  },
   "bin": {
     "agent-stage": "./dist/index.js"
   },
