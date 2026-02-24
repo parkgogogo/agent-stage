@@ -63,17 +63,17 @@ export async function getPidFile(): Promise<string> {
 export async function getPagesDir(): Promise<string> {
   const workspace = await getWorkspaceDir();
 
-  // New Vite template structure (src/routes for TanStack Router)
-  if (existsSync(join(workspace, 'src', 'routes'))) {
-    return join(workspace, 'src', 'pages');
+  // New runtime data structure
+  if (existsSync(join(workspace, 'pages'))) {
+    return join(workspace, 'pages');
   }
 
-  // Legacy Vite template structure
+  // Legacy template structure fallback
   if (existsSync(join(workspace, 'src', 'pages'))) {
     return join(workspace, 'src', 'pages');
   }
 
-  throw new Error('Routes directory not found at src/routes');
+  throw new Error('Pages directory not found at pages/');
 }
 
 // 运行时配置文件路径

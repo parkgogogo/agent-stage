@@ -2,7 +2,6 @@ import { Command } from 'commander';
 import consola from 'consola';
 import c from 'picocolors';
 import { writeFile, mkdir } from 'fs/promises';
-import { existsSync } from 'fs';
 import { join } from 'pathe';
 import { getWorkspaceDir, isInitialized, readRuntimeConfig, getPagesDir } from '../../utils/paths.js';
 import { FileStore } from '@agentstage/bridge';
@@ -39,22 +38,10 @@ export const pageAddCommand = new Command('add')
     try {
       const workspaceDir = await getWorkspaceDir();
       const config = await readRuntimeConfig();
-      const routesDir = join(workspaceDir, 'src', 'routes');
-      const pagesDir = join(workspaceDir, 'src', 'pages', name);
-      const pageFile = join(routesDir, `${name}.tsx`);
+      const pagesDir = join(workspaceDir, 'pages', name);
 
       // 确保目录存在
-      await mkdir(routesDir, { recursive: true });
       await mkdir(pagesDir, { recursive: true });
-
-      if (existsSync(pageFile)) {
-        printAgentErrorHelp(`Page "${name}" already exists`);
-        process.exit(1);
-      }
-
-      // 生成 .tsx 路由文件
-      const pageContent = generateTsxContent(name);
-      await writeFile(pageFile, pageContent);
 
       // 处理 UI
       let uiContent: Record<string, unknown>;
@@ -126,19 +113,18 @@ export const pageAddCommand = new Command('add')
       if (options.ui) {
         // 提供了完整 UI
         printAgentSuccess(
-          `Page "${name}" created with custom UI and state`,
+            `Page "${name}" created with custom UI and state`,
           [
-            `Start dev server: agentstage dev start`,
-            `Open http://localhost:${port}/${name} to see your page`,
+            `Start runtime: agentstage serve ${name}`,
+            `Open http://localhost:${port} to see your page`,
             `Update state: agentstage run set-state ${name} '{"key": "value"}'`
           ]
         );
       } else {
         // 默认 UI，输出 prompts
         consola.success(`Page "${name}" created`);
-        console.log(`  Route: ${c.cyan(`src/routes/${name}.tsx`)}`);
-        console.log(`  UI:    ${c.cyan(`src/pages/${name}/ui.json`)}`);
-        console.log(`  Store: ${c.cyan(`src/pages/${name}/store.json`)}`);
+        console.log(`  UI:    ${c.cyan(`pages/${name}/ui.json`)}`);
+        console.log(`  Store: ${c.cyan(`pages/${name}/store.json`)}`);
         console.log(`  URL:   ${c.cyan(`http://localhost:${port}/${name}`)}`);
         console.log();
         console.log(c.bold('─'.repeat(60)));
@@ -158,28 +144,6 @@ export const pageAddCommand = new Command('add')
       process.exit(1);
     }
   });
-
-function generateTsxContent(name: string): string {
-  const pascalName = toPascalCase(name);
-
-  return `import { createFileRoute } from '@tanstack/react-router'
-import { useMemo } from 'react'
-import { PageRenderer } from '../components/PageRenderer'
-import { createPageBridge } from '../lib/bridge'
-
-export const Route = createFileRoute('/${name}')({
-  component: ${pascalName}Page,
-})
-
-function ${pascalName}Page() {
-  const bridge = useMemo(() => createPageBridge({
-    pageId: '${name}',
-  }), [])
-
-  return <PageRenderer pageId="${name}" bridge={bridge} />
-}
-`;
-}
 
 function generateDefaultUi(name: string): Record<string, unknown> {
   const titleName = toTitleCase(name);
@@ -221,10 +185,6 @@ function generateDefaultState(name: string): Record<string, unknown> {
     updatedAt: new Date().toISOString(),
     pageId: name,
   };
-}
-
-function toPascalCase(str: string): string {
-  return str.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('');
 }
 
 function toTitleCase(str: string): string {

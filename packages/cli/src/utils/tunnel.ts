@@ -1,5 +1,5 @@
 /**
- * Cloudflare Tunnel management for exposing local dev server
+ * Cloudflare Tunnel management for exposing local runtime server
  */
 
 import { spawn, type ChildProcess } from 'child_process';

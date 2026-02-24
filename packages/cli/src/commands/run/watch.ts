@@ -16,7 +16,7 @@ export const runWatchCommand = new Command('watch')
 
     const config = await readRuntimeConfig();
     if (!config) {
-      consola.error('Runtime is not running. Start it first with `agentstage dev start`.');
+      consola.error('Runtime is not running. Start it first with `agentstage serve <pageId>`.');
       process.exit(1);
     }
 

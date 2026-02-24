@@ -68,10 +68,10 @@ const errorGuides: Record<string, ErrorGuide> = {
   // 运行时相关
   'runtime_not_running': {
     message: 'Runtime is not running',
-    cause: 'The development server is not started',
-    fix: 'Start the dev server in another terminal',
-    example: 'agentstage dev start',
-    relatedCommands: ['dev start', 'dev status']
+    cause: 'The runtime process is not started',
+    fix: 'Start a page runtime in another terminal',
+    example: 'agentstage serve <pageId>',
+    relatedCommands: ['serve', 'status']
   },
 
   'page_not_connected': {
@@ -79,7 +79,7 @@ const errorGuides: Record<string, ErrorGuide> = {
     cause: 'Using --live flag but page is not open in browser',
     fix: 'Either remove --live, or open the page in browser first',
     example: '# Option 1: File-only update\nagentstage run set-state mypage \'{...}\'\n\n# Option 2: Open page first\n# Then use --live',
-    relatedCommands: ['run set-state', 'dev start']
+    relatedCommands: ['run set-state', 'serve']
   },
 
   // 路径遍历（安全）

@@ -21,6 +21,10 @@
     "./vite": {
       "types": "./dist/vite/index.d.ts",
       "default": "./dist/vite/index.js"
+    },
+    "./bun": {
+      "types": "./dist/bun/index.d.ts",
+      "default": "./dist/bun/index.js"
     }
   },
   "scripts": {

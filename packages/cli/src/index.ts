@@ -9,7 +9,9 @@ import { dirname, join } from 'pathe';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const pkg = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf8'));
 
-import { devCommand } from './commands/dev/index.js';
+import { initCommand } from './commands/init.js';
+import { stopCommand } from './commands/stop.js';
+import { statusCommand } from './commands/status.js';
 import { pageCommand } from './commands/page/index.js';
 import { runCommand } from './commands/run/index.js';
 import { guideCommand } from './commands/guide.js';
@@ -17,6 +19,7 @@ import { cleanupCommand } from './commands/cleanup.js';
 import { componentsCommand } from './commands/components.js';
 import { doctorCommand } from './commands/doctor.js';
 import { verifyCommand } from './commands/verify.js';
+import { serveCommand } from './commands/serve.js';
 
 const program = new Command();
 
@@ -26,7 +29,10 @@ program
   .version(pkg.version);
 
 // Register commands
-program.addCommand(devCommand);      // dev init/start/stop/status
+program.addCommand(initCommand);  // init
+program.addCommand(serveCommand);    // serve <pageId>
+program.addCommand(stopCommand);  // stop
+program.addCommand(statusCommand); // status
 program.addCommand(pageCommand);     // page add/rm/ls/manifest
 program.addCommand(runCommand);      // run get-state/set-state/exec/inspect/watch
 program.addCommand(guideCommand);    // guide

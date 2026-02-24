@@ -2,8 +2,7 @@
   "name": "agent-stage",
   "version": "0.2.15",
   "files": [
-    "dist",
-    "template"
+    "dist"
   ],
   "type": "module",
   "bin": {

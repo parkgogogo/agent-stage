@@ -31,3 +31,8 @@ export {
   type StoreData,
 } from './gateway/fileStore.js';
 export { bridgePlugin } from './vite/index.js';
+export { startBridgeBunServer } from './bun/index.js';
+export type {
+  StartBridgeBunServerOptions,
+  BridgeBunServer,
+} from './bun/index.js';

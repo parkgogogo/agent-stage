@@ -7,6 +7,9 @@
   ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "agentstage-render-serve": "./dist/serve-cli.js"
+  },
   "scripts": {
     "build": "rm -f tsconfig.tsbuildinfo && tsc",
     "dev": "tsc --watch",
@@ -17,27 +20,31 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./bridge-state-provider": {
-      "types": "./dist/bridge-state-provider.d.ts",
-      "default": "./dist/bridge-state-provider.js"
+    "./runtime": {
+      "types": "./dist/runtime.d.ts",
+      "default": "./dist/runtime.js"
     },
-    "./shadcn": {
-      "types": "./dist/shadcn.d.ts",
-      "default": "./dist/shadcn.js"
+    "./agent-kit": {
+      "types": "./dist/agent-kit.d.ts",
+      "default": "./dist/agent-kit.js"
     },
-    "./json-to-tsx": {
-      "types": "./dist/json-to-tsx.d.ts",
-      "default": "./dist/json-to-tsx.js"
+    "./serve": {
+      "types": "./dist/serve.d.ts",
+      "default": "./dist/serve.js"
     }
   },
+  "dependencies": {
+    "@agentstage/bridge": "^0.1.0"
+  },
   "peerDependencies": {
-    "@json-render/core": "*",
-    "@json-render/react": "*",
-    "@json-render/shadcn": "*",
+    "@json-render/core": "^0.7.0",
+    "@json-render/react": "^0.7.0",
+    "@json-render/shadcn": "^0.7.0",
     "react": ">=18",
     "zod": "^3.22.0"
   },
   "devDependencies": {
+    "@agentstage/bridge": "workspace:*",
     "@json-render/core": "0.7.0",
     "@json-render/react": "0.7.0",
     "@json-render/shadcn": "^0.7.0",

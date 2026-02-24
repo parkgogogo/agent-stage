@@ -97,6 +97,9 @@ importers:
         specifier: ^3.22.0
         version: 3.25.76
     devDependencies:
+      '@agentstage/bridge':
+        specifier: workspace:*
+        version: link:../bridge
       '@json-render/core':
         specifier: 0.7.0
         version: 0.7.0(zod@3.25.76)

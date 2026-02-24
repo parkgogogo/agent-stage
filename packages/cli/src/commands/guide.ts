@@ -37,9 +37,9 @@ const guides: Record<string, GuideSection> = {
         explanation: 'Creates a page with UI and initial state'
       },
       {
-        scenario: '3. Start dev server',
-        command: 'agentstage dev start',
-        explanation: 'Starts the development server'
+        scenario: '3. Start page runtime',
+        command: 'agentstage serve mypage',
+        explanation: 'Starts the page runtime process'
       }
     ],
     commonErrors: [
@@ -183,8 +183,8 @@ push/pop: Navigate forward/back`
       },
       {
         error: 'Runtime is not running',
-        cause: 'Dev server is not started',
-        fix: 'Run: agentstage dev start'
+        cause: 'Page runtime is not started',
+        fix: 'Run: agentstage serve <pageId>'
       }
     ]
   },

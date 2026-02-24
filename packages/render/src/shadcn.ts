@@ -1,6 +1,3 @@
-// Re-export everything from @json-render/shadcn
-// This provides all 36 pre-built shadcn/ui components
-
 import {
   shadcnComponents,
   shadcnComponentDefinitions,
@@ -8,20 +5,15 @@ import {
 } from '@json-render/shadcn';
 
 export {
-  // Component implementations (36 shadcn/ui components)
   shadcnComponents,
-  // Component definitions for building catalogs
   shadcnComponentDefinitions,
-  // Type for component props
   ShadcnProps,
 } from '@json-render/shadcn';
 
-// Re-export from catalog subpath
 export {
   shadcnComponentDefinitions as componentDefinitions,
 } from '@json-render/shadcn/catalog';
 
-// Convenience: Common component selections for agentstage apps
 export const commonComponentNames = [
   'Button',
   'Card',
@@ -37,68 +29,29 @@ export const commonComponentNames = [
 ] as const;
 
 export type CommonComponentName = typeof commonComponentNames[number];
+export type ShadcnComponentName = keyof typeof shadcnComponents;
 
-// Helper to pick only common components from shadcnComponents
-export function pickCommonComponents() {
-  const { 
-    Button, 
-    Card, 
-    Input, 
-    Stack, 
-    Text, 
-    Heading, 
-    Badge, 
-    Separator, 
-    Dialog, 
-    Tabs, 
-    Table 
-  } = shadcnComponents;
-  
-  return {
-    Button,
-    Card,
-    Input,
-    Stack,
-    Text,
-    Heading,
-    Badge,
-    Separator,
-    Dialog,
-    Tabs,
-    Table,
-  };
+export function pickShadcnComponents<TNames extends readonly ShadcnComponentName[]>(
+  names: TNames,
+): Pick<typeof shadcnComponents, TNames[number]> {
+  const entries = names.map((name) => [name, shadcnComponents[name]] as const);
+  return Object.fromEntries(entries) as Pick<typeof shadcnComponents, TNames[number]>;
 }
 
-// Helper to create a minimal catalog with just common components
+export function pickShadcnComponentDefinitions<TNames extends readonly ShadcnComponentName[]>(
+  names: TNames,
+): Pick<typeof shadcnComponentDefinitions, TNames[number]> {
+  const entries = names.map((name) => [name, shadcnComponentDefinitions[name]] as const);
+  return Object.fromEntries(entries) as Pick<typeof shadcnComponentDefinitions, TNames[number]>;
+}
+
+export function pickCommonComponents() {
+  return pickShadcnComponents(commonComponentNames);
+}
+
 export function createCommonCatalog() {
-  const { 
-    Button, 
-    Card, 
-    Input, 
-    Stack, 
-    Text, 
-    Heading, 
-    Badge, 
-    Separator, 
-    Dialog, 
-    Tabs, 
-    Table 
-  } = shadcnComponentDefinitions;
-  
   return {
-    components: {
-      Button,
-      Card,
-      Input,
-      Stack,
-      Text,
-      Heading,
-      Badge,
-      Separator,
-      Dialog,
-      Tabs,
-      Table,
-    },
+    components: pickShadcnComponentDefinitions(commonComponentNames),
     actions: {},
   };
 }

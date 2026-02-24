@@ -15,7 +15,7 @@ export const runInspectCommand = new Command('inspect')
 
     const config = await readRuntimeConfig();
     if (!config) {
-      consola.error('Runtime is not running. Start it first with `agentstage dev start`.');
+      consola.error('Runtime is not running. Start it first with `agentstage serve <pageId>`.');
       process.exit(1);
     }
 
