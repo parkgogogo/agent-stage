@@ -102,7 +102,8 @@ if command -v bun >/dev/null 2>&1; then
   assert_contains "${PAGE_ADD_OUTPUT}" "agentstage prompt ui --page counter" "page add points to prompt ui command"
 
   PROMPT_OUTPUT="$(run_cli prompt ui --page counter 2>&1 || true)"
-  assert_contains "${PROMPT_OUTPUT}" "Return ONLY one valid JSON object." "prompt ui outputs strict JSON instruction"
+  assert_contains "${PROMPT_OUTPUT}" "SYSTEM PROMPT (createRenderAgentKit.systemPrompt)" "prompt ui includes render system prompt section"
+  assert_contains "${PROMPT_OUTPUT}" "OUTPUT FORMAT (JSONL, RFC 6902 JSON Patch)" "prompt ui uses render core prompt format"
   assert_contains "${PROMPT_OUTPUT}" "counter" "prompt ui includes page context"
 
   run_cli serve counter --port "${TEST_PORT}" >"${TMP_LOG_DIR}/serve.log" 2>&1 || true
@@ -133,7 +134,7 @@ else
   SERVE_OUTPUT="$(run_cli serve counter 2>&1 || true)"
   assert_contains "${SERVE_OUTPUT}" "Bun is required" "serve fails with bun required message"
   PROMPT_OUTPUT="$(run_cli prompt ui --page counter 2>&1 || true)"
-  assert_contains "${PROMPT_OUTPUT}" "Return ONLY one valid JSON object." "prompt ui works without Bun"
+  assert_contains "${PROMPT_OUTPUT}" "SYSTEM PROMPT (createRenderAgentKit.systemPrompt)" "prompt ui works without Bun"
   rm -rf "${WS_DIR}"
 fi
 

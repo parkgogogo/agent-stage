@@ -39,7 +39,7 @@ const guides: Record<string, GuideSection> = {
       {
         scenario: '3. Generate prompt for AI UI JSON',
         command: 'agentstage prompt ui --page mypage',
-        explanation: 'Prints a prompt you can send to AI to generate valid ui.json'
+        explanation: 'Prints render core system/user prompts from createRenderAgentKit'
       },
       {
         scenario: '4. Start page runtime',
@@ -97,17 +97,17 @@ const guides: Record<string, GuideSection> = {
 
   'prompt-ui': {
     title: 'Prompt for UI JSON',
-    description: 'Generate prompt text for AI to produce valid json-render ui.json',
+    description: 'Generate render core prompt text (system + user) from createRenderAgentKit',
     examples: [
       {
-        scenario: 'Generate a generic prompt',
+        scenario: 'Generate generic render prompt',
         command: 'agentstage prompt ui',
-        explanation: 'Outputs a reusable prompt with JSON shape and binding rules'
+        explanation: 'Outputs core system prompt and paired user prompt'
       },
       {
         scenario: 'Generate with page context',
         command: 'agentstage prompt ui --page todo',
-        explanation: 'Includes current ui.json/store.json context to guide refinement'
+        explanation: 'Injects current ui.json/store.json context into the user prompt'
       },
       {
         scenario: 'Pipe prompt into a file',

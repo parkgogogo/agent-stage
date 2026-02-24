@@ -1,6 +1,6 @@
 ---
 name: agentstage
-description: Use this skill when an agent needs to operate the `agentstage` CLI to create pages, generate AI prompts for ui.json, run a page runtime, and control page state. Covers command-level workflows only: `init`, `page`, `prompt ui`, `serve`, `run`, `status`, `stop`.
+description: "Use this skill when an agent needs to operate the `agent-stage` CLI to create pages, generate AI prompts for ui.json, run a page runtime, and control page state. Covers command-level workflows only: `init`, `page`, `prompt ui`, `serve`, `run`, `status`, `stop`."
 ---
 
 # Agentstage Skill
@@ -12,46 +12,49 @@ description: Use this skill when an agent needs to operate the `agentstage` CLI 
 
 1. 初始化工作区：
 ```bash
-agentstage init --yes --skip-cloudflared-check
+agent-stage init --yes --skip-cloudflared-check
 ```
 
 2. 创建页面骨架：
 ```bash
-agentstage page add counter
+agent-stage page add counter
 ```
 
 3. 生成 AI Prompt（核心）：
 ```bash
 # 通用 prompt
-agentstage prompt ui
+agent-stage prompt ui
 
 # 带页面上下文（推荐）
-agentstage prompt ui --page counter
+agent-stage prompt ui --page counter
 ```
 
-4. 将模型生成的 JSON 写回页面：
+4. 将模型结果写回页面：
 ```bash
-agentstage page add counter --ui '{"root":"main","elements":{...}}' --state '{"count":0}'
+agent-stage page add counter --ui '{"root":"main","elements":{...}}' --state '{"count":0}'
 ```
 
 5. 启动与调试：
 ```bash
-agentstage serve counter
-agentstage run set-state counter '{"count":1}' --live --wait 5000
-agentstage run watch counter
-agentstage status
-agentstage stop
+agent-stage serve counter
+agent-stage run set-state counter '{"count":1}' --live --wait 5000
+agent-stage run watch counter
+agent-stage status
+agent-stage stop
 ```
 
-## Prompt 生成规则（必须遵守）
+## Prompt 生成规则（核心）
 
-当你使用 `agentstage prompt ui` 后，把输出原样发给 LLM，并要求 LLM：
+`agent-stage prompt ui` 输出两段内容：
 
-1. 只输出一个合法 JSON 对象。  
-2. 不要输出 markdown code fence。  
-3. 不要输出解释文本。  
-4. 输出结构必须包含 `root` 和 `elements`。  
-5. `children` 引用必须都能在 `elements` 找到。
+1. `SYSTEM PROMPT`：来自 `createRenderAgentKit().systemPrompt()`（render 核心提示词）。  
+2. `USER PROMPT`：由 `createRenderAgentKit().buildUserPrompt(...)` 生成，`--page` 时会注入当前 `ui.json/store.json` 上下文。
+
+使用方式：
+
+1. 把 `SYSTEM PROMPT` 放到 LLM 的 system 消息。  
+2. 把 `USER PROMPT` 放到 LLM 的 user 消息。  
+3. 按你的目标决定让模型输出 patch 或最终 `ui.json`，然后再通过 CLI 写回页面文件。
 
 ## 页面与路径约束
 
@@ -72,23 +75,23 @@ pages/<pageId>/store.json
 ## 常见命令速查
 
 ```bash
-agentstage page add <name>
-agentstage page rm <name>
-agentstage page ls
+agent-stage page add <name>
+agent-stage page rm <name>
+agent-stage page ls
 
-agentstage prompt ui
-agentstage prompt ui --page <name>
+agent-stage prompt ui
+agent-stage prompt ui --page <name>
 
-agentstage serve <name> --port 3000
-agentstage run get-state <name> --file
-agentstage run set-state <name> '{"k":"v"}'
-agentstage run set-state <name> '{"k":"v"}' --live --wait 5000
-agentstage run inspect <name>
-agentstage run exec <name> <action> '{"payload":1}'
+agent-stage serve <name> --port 3000
+agent-stage run get-state <name> --file
+agent-stage run set-state <name> '{"k":"v"}'
+agent-stage run set-state <name> '{"k":"v"}' --live --wait 5000
+agent-stage run inspect <name>
+agent-stage run exec <name> <action> '{"payload":1}'
 
-agentstage status
-agentstage stop
-agentstage guide --list
+agent-stage status
+agent-stage stop
+agent-stage guide --list
 ```
 
 ## 参考文件

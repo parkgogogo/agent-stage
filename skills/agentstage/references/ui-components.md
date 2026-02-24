@@ -26,7 +26,7 @@
 1. `root` 必须是 `elements` 里的 key。  
 2. `children` 里引用的 id 必须存在。  
 3. `props` 必须是 JSON 可序列化内容。  
-4. 推荐先用 `agentstage prompt ui --page <id>` 生成带上下文 prompt 再让 LLM 产出 JSON。
+4. 推荐先用 `agent-stage prompt ui --page <id>` 生成带上下文 prompt 再让 LLM 产出 JSON。
 
 ## 常见组件（示例）
 
