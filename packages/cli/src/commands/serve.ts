@@ -2,23 +2,130 @@ import { Command } from "commander";
 import * as p from "@clack/prompts";
 import consola from "consola";
 import c from "picocolors";
+import { spawn, type ChildProcess } from "node:child_process";
+import { createRequire } from "node:module";
+import { createServer } from "node:net";
 import { execa } from "execa";
 import { existsSync } from "fs";
-import { join } from "pathe";
+import { dirname, join } from "pathe";
 import {
   getWorkspaceDir,
   isInitialized,
   readRuntimeConfig,
   saveRuntimeConfig,
+  type RuntimeConfig,
 } from "../utils/paths.js";
 import { canStartTunnel, startTunnel, printTunnelInfo } from "../utils/tunnel.js";
 import { checkCloudflared, printInstallInstructions } from "../utils/cloudflared.js";
 
-interface RuntimeConfig {
-  pid: number;
-  port: number;
-  startedAt: string;
-  tunnelUrl?: string;
+const require = createRequire(import.meta.url);
+
+async function ensurePortAvailable(port: number, host: string): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const probe = createServer();
+    probe.once("error", (error: NodeJS.ErrnoException) => {
+      probe.close();
+      if (error.code === "EADDRINUSE") {
+        reject(new Error(`Port ${port} is already in use`));
+        return;
+      }
+      reject(error);
+    });
+    probe.listen(port, host, () => {
+      probe.close((error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        resolve();
+      });
+    });
+  });
+}
+
+async function waitForRuntimeReady(
+  port: number,
+  pageId: string,
+  timeoutMs = 5000,
+): Promise<void> {
+  const start = Date.now();
+  let lastError: unknown = null;
+
+  while (Date.now() - start < timeoutMs) {
+    try {
+      const response = await fetch(`http://127.0.0.1:${port}/health`, {
+        signal: AbortSignal.timeout(500),
+      });
+      if (response.ok) {
+        const health = (await response.json()) as {
+          ok?: boolean;
+          pageId?: string;
+        };
+        if (health.ok === true && health.pageId === pageId) {
+          return;
+        }
+        lastError = new Error("runtime health mismatch");
+      } else {
+        lastError = new Error(`health returned ${response.status}`);
+      }
+    } catch (error) {
+      lastError = error;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("Runtime health check timed out");
+}
+
+function resolveRenderServeBin(): string | null {
+  const override = process.env.AGENTSTAGE_RENDER_SERVE_BIN;
+  if (override) {
+    return override;
+  }
+
+  try {
+    const serveModulePath = require.resolve("@agentstage/render/serve");
+    const candidate = join(dirname(serveModulePath), "serve-cli.js");
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+  } catch {
+    // ignore resolution failure
+  }
+
+  return null;
+}
+
+async function waitForRuntimeProcessOrReady(
+  subprocess: ChildProcess,
+  ready: Promise<void>,
+): Promise<void> {
+  let onError: ((error: Error) => void) | null = null;
+  let onExit: ((code: number | null, signal: NodeJS.Signals | null) => void) | null = null;
+  const exited = new Promise<void>((_, reject) => {
+    onError = (error) => {
+      reject(error);
+    };
+    onExit = (code, signal) => {
+      const detail = code !== null ? `code ${code}` : `signal ${signal ?? "unknown"}`;
+      reject(new Error(`Runtime process exited before becoming ready (${detail})`));
+    };
+    subprocess.once("error", onError);
+    subprocess.once("exit", onExit);
+  });
+
+  try {
+    await Promise.race([ready, exited]);
+  } finally {
+    if (onError) {
+      subprocess.off("error", onError);
+    }
+    if (onExit) {
+      subprocess.off("exit", onExit);
+    }
+  }
 }
 
 export const serveCommand = new Command("serve")
@@ -43,6 +150,11 @@ export const serveCommand = new Command("serve")
     const port = Number.parseInt(String(options.port), 10);
     const host = String(options.host || "0.0.0.0");
 
+    if (!Number.isFinite(port) || port <= 0 || port > 65535) {
+      consola.error(`Invalid port: ${options.port}`);
+      process.exit(1);
+    }
+
     const pageUiPath = join(workspaceDir, "pages", pageId, "ui.json");
     if (!existsSync(pageUiPath)) {
       consola.error(`Page "${pageId}" not found: ${pageUiPath}`);
@@ -54,6 +166,12 @@ export const serveCommand = new Command("serve")
     } catch {
       consola.error("Bun is required but not found.");
       consola.info("Install Bun: https://bun.sh/docs/installation");
+      process.exit(1);
+    }
+
+    const serveBin = resolveRenderServeBin();
+    if (!serveBin) {
+      consola.error("Cannot resolve @agentstage/render serve runtime entry.");
       process.exit(1);
     }
 
@@ -74,6 +192,7 @@ export const serveCommand = new Command("serve")
         // stale runtime config
       }
     }
+    await ensurePortAvailable(port, host);
 
     let tunnelUrl: string | undefined;
     if (options.tunnel) {
@@ -90,11 +209,10 @@ export const serveCommand = new Command("serve")
     s.start(`Starting page runtime (${pageId})...`);
 
     try {
-      const subprocess = execa(
-        "bunx",
+      const subprocess = spawn(
+        "bun",
         [
-          "--bun",
-          "agentstage-render-serve",
+          serveBin,
           "--workspace",
           workspaceDir,
           "--page",
@@ -114,12 +232,18 @@ export const serveCommand = new Command("serve")
       if (!subprocess.pid) {
         throw new Error("Failed to start runtime process");
       }
+      subprocess.unref();
 
       if (options.tunnel) {
         s.message("Starting Cloudflare Tunnel...");
         const tunnel = await startTunnel(port);
         tunnelUrl = tunnel.url;
       }
+
+      await waitForRuntimeProcessOrReady(
+        subprocess,
+        waitForRuntimeReady(port, pageId),
+      );
 
       const config: RuntimeConfig = {
         pid: subprocess.pid,
@@ -128,8 +252,6 @@ export const serveCommand = new Command("serve")
         tunnelUrl,
       };
       await saveRuntimeConfig(config);
-
-      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       s.stop(`Runtime started (${pageId})`);
       console.log();

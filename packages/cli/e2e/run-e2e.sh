@@ -37,6 +37,11 @@ assert_contains() {
 }
 
 run_cli() {
+  local render_serve_bin="${CLI_DIR}/../render/dist/serve-cli.js"
+  if [[ -f "${render_serve_bin}" ]]; then
+    HOME="${TMP_HOME}" AGENTSTAGE_RENDER_SERVE_BIN="${render_serve_bin}" node "${CLI_PATH}" "$@"
+    return
+  fi
   HOME="${TMP_HOME}" node "${CLI_PATH}" "$@"
 }
 
@@ -63,6 +68,7 @@ assert_contains "${HELP_OUTPUT}" "init" "help contains init command"
 
 if command -v bun >/dev/null 2>&1; then
   echo "Bun detected. Running full E2E flow."
+  TEST_PORT=$((30000 + RANDOM % 20000))
 
   run_cli init -y --skip-cloudflared-check >/dev/null
   WS_DIR="${TMP_HOME}/.agentstage/webapp"
@@ -80,10 +86,10 @@ if command -v bun >/dev/null 2>&1; then
     fail "page add creates pages/counter/{ui,store}.json"
   fi
 
-  run_cli serve counter --port 3017 >"${TMP_LOG_DIR}/serve.log" 2>&1 || true
+  run_cli serve counter --port "${TEST_PORT}" >"${TMP_LOG_DIR}/serve.log" 2>&1 || true
   STATUS_OUTPUT="$(run_cli status 2>&1 || true)"
   assert_contains "${STATUS_OUTPUT}" "running" "status shows runtime running after serve"
-  assert_contains "${STATUS_OUTPUT}" "3017" "status shows configured port"
+  assert_contains "${STATUS_OUTPUT}" "${TEST_PORT}" "status shows configured port"
 
   run_cli run set-state counter '{"count":1}' >/dev/null
   STATE_FILE_CONTENT="$(cat "${WS_DIR}/pages/counter/store.json" 2>/dev/null || true)"

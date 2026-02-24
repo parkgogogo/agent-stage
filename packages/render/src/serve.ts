@@ -2,6 +2,7 @@ import { startBridgeBunServer } from "@agentstage/bridge/bun";
 import { existsSync } from "node:fs";
 import { mkdir, readFile, stat } from "node:fs/promises";
 import { join, resolve, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 
 interface BunBuildOutput {
   path?: string;
@@ -87,11 +88,12 @@ function createHtml(pageId: string): string {
 async function buildClientBundle(cacheDir: string, pageId: string): Promise<string> {
   const bun = getBun();
   await mkdir(cacheDir, { recursive: true });
+  const runtimeModulePath = fileURLToPath(new URL("./runtime.js", import.meta.url));
 
   const entryPath = join(cacheDir, `entry-${pageId}.tsx`);
   const entryContent = `import React from "react";
 import { createRoot } from "react-dom/client";
-import { RenderPage } from "@agentstage/render/runtime";
+import { RenderPage } from ${JSON.stringify(runtimeModulePath)};
 
 const root = document.getElementById("root");
 if (!root) {
